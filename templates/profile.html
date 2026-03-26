@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block title %}个人资料 | 宝贝时光机{% endblock %}
+
+{% block content %}
+<section class="auth-layout">
+    <div class="info-panel fade-in">
+        <span class="eyebrow">👤 个人账号</span>
+        <h2>管理你的个人资料</h2>
+        <p class="panel-text">在这里修改显示姓名、邮箱地址，或更新登录密码。手机号是账号唯一标识，暂不支持修改。</p>
+        <div class="panel-meta" style="margin-top:1.5rem;font-size:.9rem;opacity:.75;">
+            <div>手机号：{{ current_user.phone }}</div>
+            <div>角色：{{ role_labels.get(current_user.role, current_user.role) }}</div>
+        </div>
+    </div>
+
+    <div class="auth-panel fade-in" data-delay="1">
+
+        <!-- 基本信息 -->
+        <h2>基本信息</h2>
+        <form method="post" class="form-stack" style="margin-bottom:2.5rem;">
+            <input type="hidden" name="form_action" value="update_profile">
+
+            <div class="field">
+                <wa-input label="姓名" name="full_name" value="{{ current_user.full_name }}" placeholder="请输入姓名" required clearable></wa-input>
+            </div>
+
+            <div class="field">
+                <wa-input label="邮箱（可选）" name="email" type="email" value="{{ current_user.email or '' }}" placeholder="请输入邮箱" clearable></wa-input>
+            </div>
+
+            <div class="field">
+                <wa-input label="手机号" name="phone_readonly" type="tel" value="{{ current_user.phone }}" disabled></wa-input>
+                <div class="form-hint">手机号是登录标识，目前不支持修改</div>
+            </div>
+
+            <div class="stack-actions">
+                <wa-button type="submit" variant="brand">保存基本信息</wa-button>
+            </div>
+        </form>
+
+        <hr style="border:none;border-top:1px solid var(--wa-color-neutral-200, #e5e7eb);margin:0 0 2rem;">
+
+        <!-- 修改密码 -->
+        <h2>修改密码</h2>
+        <form method="post" class="form-stack">
+            <input type="hidden" name="form_action" value="change_password">
+
+            <div class="field">
+                <wa-input label="当前密码" name="current_password" type="password" password-toggle placeholder="请输入当前密码" required></wa-input>
+            </div>
+
+            <div class="field">
+                <wa-input label="新密码" name="new_password" type="password" password-toggle placeholder="至少 6 位" required></wa-input>
+            </div>
+
+            <div class="field">
+                <wa-input label="确认新密码" name="confirm_password" type="password" password-toggle placeholder="请再次输入新密码" required></wa-input>
+            </div>
+
+            <div class="stack-actions">
+                <wa-button type="submit" variant="danger">更新密码</wa-button>
+            </div>
+        </form>
+
+    </div>
+</section>
+{% endblock %}

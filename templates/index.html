@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block title %}宝贝时光机 | 温馨育儿记录{% endblock %}
+
+{% block content %}
+<section class="hero">
+    <div class="hero-panel hero-copy fade-in" data-delay="1">
+        <span class="eyebrow">给新手父母的一台成长记录时光机</span>
+        <h1>记录喂养、睡眠、成长点滴，全家共享的美好时光。</h1>
+        <p>
+            宝贝时光机专为新手父母设计。爸爸、妈妈、爷爷奶奶和看护人可以加入同一个家庭，
+            共享同一份宝宝成长记录，减少重复沟通，让育儿节奏更清晰、更轻松。
+        </p>
+        <div class="hero-actions">
+            <a href="{{ url_for('register') }}"><wa-button variant="brand">立即开始</wa-button></a>
+            <a href="{{ url_for('login') }}"><wa-button appearance="outlined" variant="neutral">已有账号，去登录</wa-button></a>
+        </div>
+        <div class="hero-metrics">
+            <div class="metric-chip">
+                <strong>家庭共享</strong>
+                <span>所有成员看到统一的育儿页面与记录</span>
+            </div>
+            <div class="metric-chip">
+                <strong>全面记录</strong>
+                <span>喂养、睡眠、成长里程碑一站式管理</span>
+            </div>
+            <div class="metric-chip">
+                <strong>管理便捷</strong>
+                <span>家庭总览与事件统计一目了然</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="hero-panel hero-visual fade-in" data-delay="2">
+        <div class="floating-card">
+            <div class="card-head-row">
+                <h3 class="card-heading">晨间节奏</h3>
+                <wa-badge variant="brand">喂养</wa-badge>
+            </div>
+            <p class="card-copy">07:30 母乳 120ml，09:00 小睡 45 分钟，10:10 记录一次尿布更换。</p>
+        </div>
+        <div class="floating-card">
+            <div class="card-head-row">
+                <h3 class="card-heading">家庭协作</h3>
+                <wa-badge appearance="outlined" variant="success">共享页面</wa-badge>
+            </div>
+            <p class="card-copy">妈妈补充喂养记录，爸爸打开页面时能同步看到，同步照护更轻松。</p>
+        </div>
+        <div class="floating-card">
+            <div class="card-head-row">
+                <h3 class="card-heading">暖心里程碑</h3>
+                <wa-badge appearance="outlined" variant="warning">成长瞬间</wa-badge>
+            </div>
+            <p class="card-copy">第一次翻身、第一次叫爸爸妈妈，都能在时间轴中留下温柔注脚。</p>
+        </div>
+    </div>
+</section>
+
+<section class="section">
+    <h2 class="section-heading fade-in">核心功能</h2>
+    <div class="feature-grid">
+        <div class="soft-panel fade-in" data-delay="1">
+            <h3 class="panel-title">家庭共享</h3>
+            <p class="panel-text">创建家庭或使用邀请码加入，所有成员共享同一套宝宝档案和记录，告别重复沟通。</p>
+        </div>
+        <div class="soft-panel fade-in" data-delay="2">
+            <h3 class="panel-title">成长时间轴</h3>
+            <p class="panel-text">喂养、睡眠、成长里程碑统一汇总到时间轴，方便回看一天节奏和成长轨迹。</p>
+        </div>
+        <div class="soft-panel fade-in" data-delay="3">
+            <h3 class="panel-title">管理总览</h3>
+            <p class="panel-text">家庭、用户、宝宝和事件统计一目了然，为未来扩展运营后台打下基础。</p>
+        </div>
+    </div>
+</section>
+{% endblock %}

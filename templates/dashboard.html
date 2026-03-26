@@ -1,0 +1,411 @@
+{% extends "base.html" %}
+
+{% block title %}家庭空间 | 宝贝时光机{% endblock %}
+
+{% block content %}
+<section class="section">
+    <div class="dashboard-hero fade-in">
+        <div>
+            <div class="eyebrow">{{ role_labels.get(current_user.role, current_user.role) }}已登录</div>
+            <h2 class="dashboard-title">{{ family.name }}<span style="font-weight: 500;font-size: 2.3rem;"> 的宝宝时光记录</span></h2>
+            <p class="dashboard-subtitle">
+                家庭邀请码是 <strong>{{ family.invite_code }}</strong>
+                <br>
+                同一家庭成员加入后会看到完全相同的宝宝页面、事件时间轴、照片墙、成长曲线和疫苗提醒。
+            </p>
+            <div class="hero-actions">
+                <a href="{{ url_for('invite_page') }}"><wa-button type="button" variant="brand">📱 邀请家庭成员</wa-button></a>
+            </div>
+        </div>
+        <div class="family-badge">
+            共享家庭空间 · {{ family.users|selectattr('is_active')|list|length }} 位活跃成员
+            <div class="member-chips">
+                {% for u in family.users if u.is_active %}
+                    <span class="mini-chip member-chip{% if u.id == current_user.id %} member-chip--self{% endif %}">
+                        {{ u.full_name }}<span class="member-chip-role">{{ role_labels.get(u.role, u.role) }}</span>
+                    </span>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <div class="stats-grid fade-in" data-delay="1">
+        <div class="stat-card"><span class="event-tag">今日喂养</span><strong class="stat-number">{{ quick_stats.feeding }}</strong><div class="table-note">记录次数</div></div>
+        <div class="stat-card"><span class="event-tag">今日睡眠</span><strong class="stat-number">{{ quick_stats.sleep }}</strong><div class="table-note">记录次数</div></div>
+        <div class="stat-card"><span class="event-tag">今日排便</span><strong class="stat-number">{{ quick_stats.diaper }}</strong><div class="table-note">记录次数</div></div>
+        <div class="stat-card"><span class="event-tag">健康观察</span><strong class="stat-number">{{ quick_stats.health }}</strong><div class="table-note">记录次数</div></div>
+        <div class="stat-card"><span class="event-tag">成长里程碑</span><strong class="stat-number">{{ quick_stats.milestone }}</strong><div class="table-note">记录次数</div></div>
+    </div>
+</section>
+
+<section class="dashboard-grid section">
+    <div class="dashboard-panel fade-in" data-delay="2">
+        <div class="section-split">
+            <div>
+                <h3 class="panel-title">宝宝展示页面</h3>
+                <p class="panel-text">这是家庭共享的核心页面。宝宝档案、照片、成长数据与提醒都会展示在这里。</p>
+            </div>
+            <wa-badge variant="brand">家庭共享</wa-badge>
+        </div>
+
+        {% if babies %}
+            <div class="baby-grid">
+                {% for baby in babies %}
+                    {% set latest = latest_measurements.get(baby.id) %}
+                    <div class="baby-card">
+                        <div class="card-head-row">
+                            <div>
+                                <h4 class="baby-name">{{ baby.name }}</h4>
+                                <div class="baby-meta">
+                                    <span class="mini-chip">{{ baby.birthday|age_text }}</span>
+                                    <span class="mini-chip">生日 {{ baby.birthday.strftime('%Y-%m-%d') }}</span>
+                                    <span class="mini-chip">{{ baby.gender }}</span>
+                                </div>
+                            </div>
+                            <wa-badge appearance="outlined" variant="warning">宝宝档案</wa-badge>
+                        </div>
+                        <p class="panel-text">{{ baby.note or '这里可以记录昵称、喂养偏好、安抚方式和注意事项。' }}</p>
+                        {% if latest %}
+                            <div class="mini-facts">
+                                {% if latest.weight_kg %}<span class="mini-chip">体重 {{ latest.weight_kg }} kg</span>{% endif %}
+                                {% if latest.height_cm %}<span class="mini-chip">身高 {{ latest.height_cm }} cm</span>{% endif %}
+                                {% if latest.head_circumference_cm %}<span class="mini-chip">头围 {{ latest.head_circumference_cm }} cm</span>{% endif %}
+                            </div>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="empty-state">
+                <h4 class="card-heading">还没有宝宝档案</h4>
+                <p class="panel-text">先创建家庭里的第一个宝宝档案，后续的照片、成长曲线和提醒都会围绕宝宝展开。</p>
+            </div>
+        {% endif %}
+    </div>
+
+    <div class="dashboard-panel fade-in" data-delay="3">
+        <h3 class="panel-title">添加宝宝</h3>
+        <form method="post" class="form-stack">
+            <input type="hidden" name="form_action" value="add_baby">
+            <div class="field">
+                <wa-input label="宝宝姓名" id="baby_name" name="baby_name" placeholder="例如：小米粒" required clearable></wa-input>
+            </div>
+            <div class="grid-two">
+                <div class="field">
+                    <wa-input label="生日" id="baby_birthday" name="baby_birthday" type="date" required></wa-input>
+                </div>
+                <div class="field">
+                    <wa-select label="性别" id="baby_gender" name="baby_gender" value="unknown">
+                        <wa-option value="unknown">暂不填写</wa-option>
+                        <wa-option value="boy">男宝宝</wa-option>
+                        <wa-option value="girl">女宝宝</wa-option>
+                    </wa-select>
+                </div>
+            </div>
+            <div class="field">
+                <wa-textarea label="备注" id="baby_note" name="baby_note" rows="3" placeholder="例如：过敏提醒、奶粉偏好、安抚方式"></wa-textarea>
+            </div>
+            <wa-button type="submit" variant="brand">保存宝宝档案</wa-button>
+        </form>
+    </div>
+</section>
+
+<section class="dashboard-grid section">
+    <div class="dashboard-panel fade-in" data-delay="1">
+        <div class="section-split">
+            <div>
+                <h3 class="panel-title">成长记录登记</h3>
+                <p class="panel-text">支持喂养、睡眠、排便、健康与里程碑记录。后续还可以继续扩展更多育儿事件。</p>
+            </div>
+            <wa-badge appearance="outlined" variant="success">快速登记</wa-badge>
+        </div>
+
+        <form method="post" class="form-stack">
+            <input type="hidden" name="form_action" value="add_event">
+            <div class="grid-two">
+                <div class="field">
+                    <wa-select label="选择宝宝" id="event_baby_id" name="baby_id" {% if not babies %}disabled{% endif %} required>
+                        {% for baby in babies %}
+                            <wa-option value="{{ baby.id }}">{{ baby.name }}</wa-option>
+                        {% endfor %}
+                    </wa-select>
+                </div>
+                <div class="field">
+                    <wa-select label="记录类型" id="event_type" name="event_type" data-event-type value="feeding">
+                        <wa-option value="feeding">喂养</wa-option>
+                        <wa-option value="sleep">睡眠</wa-option>
+                        <wa-option value="diaper">排便 / 尿布</wa-option>
+                        <wa-option value="health">健康观察</wa-option>
+                        <wa-option value="milestone">成长里程碑</wa-option>
+                    </wa-select>
+                </div>
+            </div>
+            <div class="grid-two">
+                <div class="field">
+                    <wa-input label="数量" id="amount" name="amount" type="number" step="0.1" placeholder="例如：120" data-amount-input></wa-input>
+                </div>
+                <div class="field">
+                    <wa-input label="单位" id="unit" name="unit" placeholder="ml / 次 / 分钟" data-unit-input></wa-input>
+                </div>
+            </div>
+            <div class="grid-two">
+                <div class="field">
+                    <wa-input label="开始时间" id="start_time" name="start_time" type="datetime-local"></wa-input>
+                </div>
+                <div class="field" data-end-time-wrap>
+                    <wa-input label="结束时间" id="end_time" name="end_time" type="datetime-local"></wa-input>
+                </div>
+            </div>
+            <div class="field">
+                <wa-textarea label="备注" id="note" name="note" rows="4" placeholder="例如：奶量不错、睡前哭闹、今天第一次翻身"></wa-textarea>
+            </div>
+            <wa-button type="submit" variant="brand" {% if not babies %}disabled{% endif %}>保存成长记录</wa-button>
+            {% if not babies %}
+                <div class="form-hint">请先创建至少一个宝宝档案后再登记记录。</div>
+            {% endif %}
+        </form>
+    </div>
+
+    <div class="timeline-card fade-in" data-delay="2">
+        <div class="section-split">
+            <div>
+                <h3 class="panel-title">最新时间轴</h3>
+                <p class="panel-text">家庭内所有成员新增的记录都会同步显示在这里。</p>
+            </div>
+            <wa-badge variant="brand">最近 {{ events|length }} 条</wa-badge>
+        </div>
+        {% if events %}
+            <div class="timeline-list">
+                {% for event in events %}
+                    <div class="timeline-item">
+                        <div class="timeline-item-header">
+                            <div>
+                                <span class="event-tag">{{ event_type_labels.get(event.event_type, event.event_type) }}</span>
+                                <h4 class="card-heading">{{ event.baby.name }} · {{ event.author.full_name }}</h4>
+                            </div>
+                            <div class="event-time">{{ event.start_time.strftime('%Y-%m-%d %H:%M') }}</div>
+                        </div>
+                        <p class="event-note">
+                            {% if event.amount %}数量 {{ event.amount }} {{ event.unit or '' }} · {% endif %}
+                            {% if event.end_time %}结束 {{ event.end_time.strftime('%H:%M') }} · {% endif %}
+                            {{ event.note or '暂无更多备注。' }}
+                        </p>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="empty-state">
+                <h4 class="card-heading">今天还没有新的成长记录</h4>
+                <p class="panel-text">从喂养或睡眠开始录入第一条，时间轴就会逐渐丰满起来。</p>
+            </div>
+        {% endif %}
+    </div>
+</section>
+
+<section class="dashboard-grid section">
+    <div class="dashboard-panel fade-in" data-delay="1">
+        <div class="section-split">
+            <div>
+                <h3 class="panel-title">宝宝照片墙</h3>
+                <p class="panel-text">家庭成员可以把宝宝的每日瞬间放进同一面照片墙里。</p>
+            </div>
+            <wa-badge appearance="outlined" variant="warning">暖心时刻</wa-badge>
+        </div>
+        {% if photos %}
+            <div class="photo-grid">
+                {% for photo in photos %}
+                    <article class="photo-card">
+                        <img src="{{ photo.image_url }}" alt="{{ photo.caption or photo.baby.name }}">
+                        <div class="photo-meta">
+                            <strong>{{ photo.baby.name }}</strong>
+                            <span>{{ photo.caption or '家庭时光' }}</span>
+                            <small>{{ photo.taken_on.strftime('%Y-%m-%d') if photo.taken_on else photo.created_at.strftime('%Y-%m-%d') }}</small>
+                        </div>
+                    </article>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="empty-state">
+                <p class="panel-text">还没有照片，先添加一张宝宝照片地址试试。</p>
+            </div>
+        {% endif %}
+    </div>
+
+    <div class="dashboard-panel fade-in" data-delay="2">
+        <h3 class="panel-title">添加照片</h3>
+        <form method="post" class="form-stack" enctype="multipart/form-data">
+            <input type="hidden" name="form_action" value="add_photo">
+            <div class="field">
+                <wa-select label="选择宝宝" id="photo_baby_id" name="baby_id" {% if not babies %}disabled{% endif %} required>
+                    {% for baby in babies %}
+                        <wa-option value="{{ baby.id }}">{{ baby.name }}</wa-option>
+                    {% endfor %}
+                </wa-select>
+            </div>
+            <div class="field">
+                <label class="file-field-label" for="image_file">本地照片文件</label>
+                <input class="native-file-input" id="image_file" name="image_file" type="file" accept="image/png,image/jpeg,image/jpg,image/gif,image/webp" {% if not babies %}disabled{% endif %} required>
+                <div class="form-hint">图片会保存到当前项目的 images 文件夹，并自动生成可访问地址。</div>
+            </div>
+            <div class="grid-two">
+                <div class="field">
+                    <wa-input label="拍摄日期" id="taken_on" name="taken_on" type="date"></wa-input>
+                </div>
+                <div class="field">
+                    <wa-input label="照片标题" id="caption" name="caption" placeholder="例如：第一次外出散步" clearable></wa-input>
+                </div>
+            </div>
+            <wa-button type="submit" variant="brand" {% if not babies %}disabled{% endif %}>加入照片墙</wa-button>
+        </form>
+    </div>
+</section>
+
+<section class="dashboard-grid section">
+    <div class="dashboard-panel fade-in" data-delay="1">
+        <div class="section-split">
+            <div>
+                <h3 class="panel-title">成长曲线</h3>
+                <p class="panel-text">记录体重、身高和头围，直观看到宝宝的成长变化。</p>
+            </div>
+            <wa-badge variant="brand">成长曲线</wa-badge>
+        </div>
+        {% if babies %}
+            <div class="chart-list">
+                {% for baby in babies %}
+                    {% set weight_chart = growth_charts.get(baby.id, {}).get('weight') %}
+                    {% set height_chart = growth_charts.get(baby.id, {}).get('height') %}
+                    <div class="chart-card">
+                        <div class="family-item-header">
+                            <div>
+                                <h4 class="card-heading">{{ baby.name }}</h4>
+                                <div class="table-note">最近一次测量会显示在宝宝档案卡片中。</div>
+                            </div>
+                        </div>
+                        <div class="chart-grid">
+                            <div class="chart-panel">
+                                <strong>体重曲线</strong>
+                                {% if weight_chart %}
+                                    <svg class="chart-svg" viewBox="0 0 320 140" aria-label="体重曲线图">
+                                        <polyline points="{{ weight_chart.points }}" fill="none" stroke="#e98f7a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"></polyline>
+                                    </svg>
+                                    <div class="chart-legend">{{ weight_chart.min }} - {{ weight_chart.max }} {{ weight_chart.unit }}</div>
+                                {% else %}
+                                    <div class="chart-empty">还没有体重数据</div>
+                                {% endif %}
+                            </div>
+                            <div class="chart-panel">
+                                <strong>身高曲线</strong>
+                                {% if height_chart %}
+                                    <svg class="chart-svg" viewBox="0 0 320 140" aria-label="身高曲线图">
+                                        <polyline points="{{ height_chart.points }}" fill="none" stroke="#f0c46b" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"></polyline>
+                                    </svg>
+                                    <div class="chart-legend">{{ height_chart.min }} - {{ height_chart.max }} {{ height_chart.unit }}</div>
+                                {% else %}
+                                    <div class="chart-empty">还没有身高数据</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="empty-state"><p class="panel-text">先添加宝宝后再记录成长数据。</p></div>
+        {% endif %}
+    </div>
+
+    <div class="dashboard-panel fade-in" data-delay="2">
+        <h3 class="panel-title">新增测量数据</h3>
+        <form method="post" class="form-stack">
+            <input type="hidden" name="form_action" value="add_measurement">
+            <div class="field">
+                <wa-select label="选择宝宝" id="measurement_baby_id" name="baby_id" {% if not babies %}disabled{% endif %} required>
+                    {% for baby in babies %}
+                        <wa-option value="{{ baby.id }}">{{ baby.name }}</wa-option>
+                    {% endfor %}
+                </wa-select>
+            </div>
+            <div class="field">
+                <wa-input label="测量日期" id="recorded_on" name="recorded_on" type="date" required></wa-input>
+            </div>
+            <div class="grid-three">
+                <div class="field">
+                    <wa-input label="体重 (kg)" id="weight_kg" name="weight_kg" type="number" step="0.01" placeholder="例如：6.4"></wa-input>
+                </div>
+                <div class="field">
+                    <wa-input label="身高 (cm)" id="height_cm" name="height_cm" type="number" step="0.1" placeholder="例如：61.5"></wa-input>
+                </div>
+                <div class="field">
+                    <wa-input label="头围 (cm)" id="head_circumference_cm" name="head_circumference_cm" type="number" step="0.1" placeholder="例如：40.2"></wa-input>
+                </div>
+            </div>
+            <div class="field">
+                <wa-textarea label="备注" id="measurement_note" name="note" rows="3" placeholder="例如：今天体检，状态很好"></wa-textarea>
+            </div>
+            <wa-button type="submit" variant="brand" {% if not babies %}disabled{% endif %}>保存测量数据</wa-button>
+        </form>
+    </div>
+</section>
+
+<section class="dashboard-grid section">
+    <div class="dashboard-panel fade-in" data-delay="1">
+        <div class="section-split">
+            <div>
+                <h3 class="panel-title">疫苗提醒</h3>
+                <p class="panel-text">把待接种、已预约和已完成的疫苗统一列出来，避免错过关键节点。</p>
+            </div>
+            <wa-badge appearance="outlined" variant="success">疫苗日历</wa-badge>
+        </div>
+        {% if vaccines %}
+            <div class="vaccine-list">
+                {% for reminder in vaccines %}
+                    <div class="family-item">
+                        <div class="family-item-header">
+                            <div>
+                                <h4 class="card-heading">{{ reminder.baby.name }} · {{ reminder.title }}</h4>
+                                <div class="table-note">计划日期 {{ reminder.due_date.strftime('%Y-%m-%d') }}</div>
+                            </div>
+                            <span class="status-pill status-{{ reminder.display_status }}">{{ vaccine_status_labels.get(reminder.display_status, reminder.display_status) }}</span>
+                        </div>
+                        <p class="panel-text">{{ reminder.note or '暂无备注。' }}</p>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="empty-state"><p class="panel-text">还没有疫苗提醒。</p></div>
+        {% endif %}
+    </div>
+
+    <div class="dashboard-panel fade-in" data-delay="2">
+        <h3 class="panel-title">新增疫苗提醒</h3>
+        <form method="post" class="form-stack">
+            <input type="hidden" name="form_action" value="add_vaccine">
+            <div class="field">
+                <wa-select label="选择宝宝" id="vaccine_baby_id" name="baby_id" {% if not babies %}disabled{% endif %} required>
+                    {% for baby in babies %}
+                        <wa-option value="{{ baby.id }}">{{ baby.name }}</wa-option>
+                    {% endfor %}
+                </wa-select>
+            </div>
+            <div class="grid-two">
+                <div class="field">
+                    <wa-input label="疫苗名称" id="title" name="title" placeholder="例如：13 价肺炎第二针" clearable required></wa-input>
+                </div>
+                <div class="field">
+                    <wa-input label="计划日期" id="due_date" name="due_date" type="date" required></wa-input>
+                </div>
+            </div>
+            <div class="field">
+                <wa-select label="状态" id="status" name="status" value="pending">
+                    <wa-option value="pending">待接种</wa-option>
+                    <wa-option value="booked">已预约</wa-option>
+                    <wa-option value="done">已完成</wa-option>
+                </wa-select>
+            </div>
+            <div class="field">
+                <wa-textarea label="备注" id="vaccine_note" name="note" rows="3" placeholder="例如：社区医院，预约上午 9 点"></wa-textarea>
+            </div>
+            <wa-button type="submit" variant="brand" {% if not babies %}disabled{% endif %}>保存疫苗提醒</wa-button>
+        </form>
+    </div>
+</section>
+{% endblock %}

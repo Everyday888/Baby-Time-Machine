@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}宝贝时光机{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script type="module" src="{{ url_for('node_modules', filename='@awesome.me/webawesome/dist-cdn/webawesome.loader.js') }}"></script>
+    <link rel="stylesheet" href="{{ url_for('node_modules', filename='@awesome.me/webawesome/dist-cdn/styles/webawesome.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link rel="manifest" href="{{ url_for('manifest') }}">
+    <meta name="theme-color" content="#e98f7a">
+    <meta name="description" content="记录小小日常，陪伴宝宝成长。一款家庭协作的成长记录应用。">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%23ffd8bb' width='192' height='192'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-family='serif' font-size='120' font-weight='bold' fill='%238a4337'>B</text></svg>">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%23ffd8bb' width='192' height='192'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-family='serif' font-size='120' font-weight='bold' fill='%238a4337'>B</text></svg>">
+    <script defer src="{{ url_for('static', filename='js/app.js') }}"></script>
+</head>
+<body>
+    <div class="page-shell">
+        <header class="site-header fade-in">
+            <a class="brand" href="{{ url_for('index') }}">
+                <span class="brand-mark">B</span>
+                <span class="brand-copy">
+                    <h1>宝贝时光机</h1>
+                    <p>记录小小日常，陪伴慢慢长大</p>
+                </span>
+            </a>
+            <nav class="site-nav">
+                {% if current_user %}
+                    <a class="nav-link" href="{{ url_for('dashboard') }}">家庭空间</a>
+                    {% if current_user.role == 'admin' %}
+                        <a class="nav-link" href="{{ url_for('admin_panel') }}">管理员平台</a>
+                    {% endif %}
+                    <a class="nav-link" href="{{ url_for('profile') }}">个人资料</a>
+                    <a class="nav-link" href="{{ url_for('logout') }}">退出登录</a>
+                {% else %}
+                    <a class="nav-link" href="{{ url_for('login') }}">登录</a>
+                    <a class="nav-link" href="{{ url_for('register') }}">注册</a>
+                {% endif %}
+            </nav>
+        </header>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-list fade-in" data-delay="1">
+                    {% for category, message in messages %}
+                        <div class="flash {{ category }}">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+
+        <footer class="footer-note">
+            新手父母的家庭共享育儿记录工具。
+        </footer>
+    </div>
+
+    <!-- PWA 安装提示 -->
+    <div id="install-prompt" class="install-prompt hidden">
+        <div class="install-content">
+            <div class="install-header">
+                <span class="eyebrow">💡 提示</span>
+                <button id="install-close" class="install-close" aria-label="关闭">×</button>
+            </div>
+            <p>将宝贝时光机添加到主屏幕，随时随地记录宝宝成长！</p>
+            <div class="install-actions">
+                <button id="install-btn" class="install-button">添加到主屏幕</button>
+                <button id="install-dismiss" class="install-dismiss">暂不</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    // 修复重复 ID 的问题
+    document.addEventListener('DOMContentLoaded', function() {
+        // 移除重复的 input id 属性
+        const inputsPart = document.querySelectorAll('[part="input"]');
+        inputsPart.forEach((input, index) => {
+            if (input.id === 'input') {
+                // 保留第一个，其他改为使用 data-id 或其他标识
+                if (index > 0) {
+                    input.removeAttribute('id');
+                    input.setAttribute('data-input-index', index);
+                }
+            }
+        });
+    });
+
+    // 注册 Service Worker
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('{{ url_for("static", filename="js/service-worker.js") }}').then(reg => {
+            console.log('Service Worker 注册成功');
+        }).catch(err => {
+            console.error('Service Worker 注册失败:', err);
+        });
+    }
+
+    // PWA 安装提示 - 最优实现（无警告）
+    let deferredPrompt = null;
+    let promptShown = false;
+    const installPrompt = document.getElementById('install-prompt');
+    const installBtn = document.getElementById('install-btn');
+    const installDismiss = document.getElementById('install-dismiss');
+    const installClose = document.getElementById('install-close');
+
+    // 监听 beforeinstallprompt 事件（不阻止默认行为）
+    window.addEventListener('beforeinstallprompt', (event) => {
+        // ✅ 不调用 preventDefault() - 让浏览器继续其默认行为
+        // ✅ 只保存事件 - 供我们的自定义 UI 使用
+        deferredPrompt = event;
+        
+        // 检查是否为 iOS 设备
+        const isIOS = /(iPad|iPhone|iPod)/g.test(navigator.userAgent);
+        
+        if (!isIOS && !promptShown) {
+            // 延迟显示自定义提示
+            setTimeout(() => {
+                if (installPrompt && !promptShown) {
+                    installPrompt.classList.remove('hidden');
+                    promptShown = true;
+                }
+            }, 3000);
+        }
+    });
+
+    // 安装按钮点击事件
+    if (installBtn) {
+        installBtn.addEventListener('click', async () => {
+            if (deferredPrompt) {
+                try {
+                    // ✅ 现在调用 prompt() - 此时调用不会有警告
+                    deferredPrompt.prompt();
+                    
+                    // 等待用户选择
+                    const { outcome } = await deferredPrompt.userChoice;
+                    console.log('PWA 安装:', outcome === 'accepted' ? '已接受' : '已拒绝');
+                    
+                    // 清除事件
+                    deferredPrompt = null;
+                    
+                    // 隐藏提示框
+                    if (installPrompt) {
+                        installPrompt.classList.add('hidden');
+                    }
+                } catch (err) {
+                    console.error('PWA 提示错误:', err);
+                }
+            } else {
+                // 如果没有 beforeinstallprompt 事件（不支持 PWA 的浏览器）
+                alert('您的浏览器暂不支持添加到主屏幕功能。\n请尝试使用 Chrome、Edge 或 Samsung Internet。');
+            }
+        });
+    }
+
+    // 关闭按钮事件
+    [installDismiss, installClose].forEach(btn => {
+        if (btn) {
+            btn.addEventListener('click', () => {
+                if (installPrompt) {
+                    installPrompt.classList.add('hidden');
+                }
+            });
+        }
+    });
+
+    // 应用已安装时隐藏提示
+    window.addEventListener('appinstalled', () => {
+        if (installPrompt) {
+            installPrompt.classList.add('hidden');
+        }
+        deferredPrompt = null;
+        console.log('✓ 应用已安装到主屏幕');
+    });
+    </script>
+</body>
+</html>

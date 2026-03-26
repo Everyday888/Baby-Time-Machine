@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+
+{% block title %}家庭详情 | 宝贝时光机{% endblock %}
+
+{% block content %}
+<section class="section">
+    <div class="dashboard-hero fade-in">
+        <div>
+            <div class="eyebrow">家庭详情</div>
+            <h2 class="admin-title">{{ family.name }}</h2>
+            <p class="dashboard-subtitle">邀请码 {{ family.invite_code }}。这里可以查看成员、宝宝、照片、疫苗与最近成长记录。</p>
+        </div>
+        <a href="{{ url_for('admin_panel') }}"><wa-button type="button" appearance="outlined" variant="neutral">返回管理员平台</wa-button></a>
+    </div>
+</section>
+
+<section class="admin-grid section">
+    <div class="admin-card fade-in" data-delay="1">
+        <h3 class="panel-title">家庭成员</h3>
+        <div class="family-list">
+            {% for user in family_users %}
+                <div class="family-item">
+                    <div class="family-item-header">
+                        <div>
+                            <h4 class="card-heading">{{ user.full_name }}</h4>
+                            <div class="table-note">{{ role_labels.get(user.role, user.role) }} · {{ user.email }}</div>
+                        </div>
+                        <div class="admin-inline-actions">
+                            <span class="status-pill status-{{ 'done' if user.is_active else 'overdue' }}">{{ '正常' if user.is_active else '已停用' }}</span>
+                            {% if user.is_active %}
+                                <form method="post" action="{{ url_for('admin_delete_user', user_id=user.id) }}">
+                                    <wa-button type="submit" size="small" appearance="outlined" variant="danger">停用用户</wa-button>
+                                </form>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="admin-card fade-in" data-delay="2">
+        <h3 class="panel-title">宝宝档案</h3>
+        <div class="baby-grid">
+            {% for baby in babies %}
+                <div class="baby-card">
+                    <h4 class="baby-name">{{ baby.name }}</h4>
+                    <div class="baby-meta">
+                        <span class="mini-chip">{{ baby.birthday|age_text }}</span>
+                        <span class="mini-chip">{{ baby.birthday.strftime('%Y-%m-%d') }}</span>
+                    </div>
+                    <p class="panel-text">{{ baby.note or '暂无补充说明。' }}</p>
+                </div>
+            {% else %}
+                <div class="empty-state"><p class="panel-text">这个家庭还没有宝宝档案。</p></div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<section class="admin-grid section">
+    <div class="admin-card fade-in" data-delay="3">
+        <h3 class="panel-title">疫苗提醒</h3>
+        <div class="family-list">
+            {% for reminder in vaccines %}
+                <div class="family-item">
+                    <div class="family-item-header">
+                        <div>
+                            <h4 class="card-heading">{{ reminder.baby.name }} · {{ reminder.title }}</h4>
+                            <div class="table-note">{{ reminder.due_date.strftime('%Y-%m-%d') }}</div>
+                        </div>
+                        <span class="status-pill status-{{ reminder.display_status }}">{{ vaccine_status_labels.get(reminder.display_status, reminder.display_status) }}</span>
+                    </div>
+                    <p class="panel-text">{{ reminder.note or '暂无备注。' }}</p>
+                </div>
+            {% else %}
+                <div class="empty-state"><p class="panel-text">还没有疫苗提醒。</p></div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="admin-card fade-in" data-delay="4">
+        <h3 class="panel-title">照片墙预览</h3>
+        <div class="photo-grid compact-photo-grid">
+            {% for photo in photos %}
+                <article class="photo-card">
+                    <img src="{{ photo.image_url }}" alt="{{ photo.caption or photo.baby.name }}">
+                    <div class="photo-meta">
+                        <strong>{{ photo.baby.name }}</strong>
+                        <span>{{ photo.caption or '家庭时光' }}</span>
+                    </div>
+                </article>
+            {% else %}
+                <div class="empty-state"><p class="panel-text">还没有宝宝照片。</p></div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<section class="section">
+    <div class="admin-card fade-in" data-delay="5">
+        <h3 class="panel-title">最近成长记录</h3>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>宝宝</th>
+                        <th>类型</th>
+                        <th>记录人</th>
+                        <th>时间</th>
+                        <th>备注</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for event in recent_events %}
+                        <tr>
+                            <td>{{ event.baby.name }}</td>
+                            <td>{{ event_type_labels.get(event.event_type, event.event_type) }}</td>
+                            <td>{{ event.author.full_name }}</td>
+                            <td>{{ event.start_time.strftime('%Y-%m-%d %H:%M') }}</td>
+                            <td>{{ event.note or '-' }}</td>
+                        </tr>
+                    {% else %}
+                        <tr>
+                            <td colspan="5">还没有成长记录。</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+{% endblock %}
