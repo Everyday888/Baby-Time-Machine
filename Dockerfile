@@ -1,3 +1,11 @@
+FROM node:20-slim AS node_deps
+
+WORKDIR /app
+
+# Install frontend dependencies (Web Awesome and related assets)
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev
+
 FROM python:3.11-slim
 
 WORKDIR /app
@@ -16,6 +24,9 @@ RUN pip install --no-cache-dir gunicorn
 
 # Copy application code
 COPY . .
+
+# Bring frontend assets from the Node dependency stage
+COPY --from=node_deps /app/node_modules ./node_modules
 
 # Create images directory for uploads
 RUN mkdir -p /app/images
