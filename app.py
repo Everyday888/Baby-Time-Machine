@@ -7,6 +7,7 @@ from datetime import date, datetime, timedelta
 from email.message import EmailMessage
 from functools import wraps
 from io import BytesIO
+from urllib.parse import urlsplit
 
 from dotenv import load_dotenv
 from flask import Flask, flash, g, redirect, render_template, request, send_from_directory, session, url_for
@@ -35,7 +36,7 @@ ALLOWED_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".webp"}
 def create_app() -> Flask:
     app = Flask(__name__)
     app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "dev-secret-change-me")
-    app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=14)
+    app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(minutes=15)
     app.config["UPLOAD_IMAGE_DIR"] = os.path.join(app.root_path, "images")
     app.config["PUBLIC_BASE_URL"] = os.getenv("PUBLIC_BASE_URL", "").strip().rstrip("/")
 
@@ -45,6 +46,23 @@ def create_app() -> Flask:
         if not user_id:
             g.user = None
             return
+
+        now = datetime.utcnow()
+        last_seen_raw = session.get("last_seen_at")
+        if last_seen_raw:
+            try:
+                last_seen = datetime.fromisoformat(last_seen_raw)
+            except ValueError:
+                last_seen = None
+            if last_seen and now - last_seen > timedelta(minutes=15):
+                session.clear()
+                flash("登录已过期，请重新登录。", "error")
+                return redirect(url_for("login", next=get_current_relative_url()))
+
+        endpoint = request.endpoint or ""
+        if endpoint not in {"static", "manifest", "node_modules", "uploaded_image"}:
+            session["last_seen_at"] = now.isoformat()
+            session.modified = True
 
         user = auth_service.get_active_user_by_id(user_id)
         g.user = user
@@ -199,6 +217,7 @@ def create_app() -> Flask:
 
     @app.route("/login", methods=["GET", "POST"])
     def login():
+        next_url = get_safe_next_url(request.values.get("next"))
         if request.method == "POST":
             account = request.form.get("account", "").strip().lower()
             password = request.form.get("password", "")
@@ -213,9 +232,10 @@ def create_app() -> Flask:
             auth_service.update_user_last_login(user["id"], user["full_name"])
             session["user_id"] = user["id"]
             session.permanent = remember_me
-            return redirect(url_for("dashboard"))
+            session["last_seen_at"] = datetime.utcnow().isoformat()
+            return redirect(next_url or url_for("dashboard"))
 
-        return render_template("auth/login.html", form=request.form)
+        return render_template("auth/login.html", form=request.form, next_url=next_url)
 
     @app.route("/forgot-password", methods=["GET", "POST"])
     def forgot_password():
@@ -649,10 +669,33 @@ def login_required(view_func):
     def wrapped(*args, **kwargs):
         if not g.get("user"):
             flash("请先登录。", "error")
-            return redirect(url_for("login"))
+            return redirect(url_for("login", next=get_current_relative_url()))
         return view_func(*args, **kwargs)
 
     return wrapped
+
+
+def get_safe_next_url(next_value: str | None) -> str | None:
+    if not next_value:
+        return None
+    target = next_value.strip()
+    if not target:
+        return None
+
+    parsed = urlsplit(target)
+    # Only allow local relative paths to avoid open redirects.
+    if parsed.scheme or parsed.netloc:
+        return None
+    if not target.startswith("/") or target.startswith("//"):
+        return None
+    return target
+
+
+def get_current_relative_url() -> str:
+    full_path = request.full_path or request.path or "/"
+    if full_path.endswith("?"):
+        full_path = full_path[:-1]
+    return full_path or "/"
 
 
 def admin_required(view_func):
