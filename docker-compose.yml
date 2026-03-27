@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 version: "3.8"
 
 services:
@@ -20,8 +19,8 @@ services:
       - MYSQL_HOST=mysql
       - MYSQL_PORT=3306
       - MYSQL_USER=root
-      - MYSQL_PASSWORD=${MYSQL_ROOT_PASSWORD:-babytime2024}
-      - MYSQL_DB=baby_time_machine
+      - MYSQL_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - MYSQL_DB=${MYSQL_DB}
       - SECRET_KEY=${SECRET_KEY:-change-me-to-a-random-secret}
       - PUBLIC_BASE_URL=${PUBLIC_BASE_URL:-}
     volumes:
@@ -34,8 +33,8 @@ services:
   mysql:
     image: mysql:8.0
     environment:
-      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-babytime2024}
-      - MYSQL_DATABASE=baby_time_machine
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - MYSQL_DATABASE=${MYSQL_DB}
       - MYSQL_CHARSET=utf8mb4
     volumes:
       - mysql_data:/var/lib/mysql
@@ -50,52 +49,3 @@ services:
 volumes:
   mysql_data:
   app_images:
-=======
-services:
-  db:
-    image: mysql:8.0
-    restart: unless-stopped
-    environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-changeme}
-      MYSQL_DATABASE: ${MYSQL_DB:-baby_time_machine}
-      MYSQL_USER: ${MYSQL_USER:-btm_user}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-changeme}
-    volumes:
-      - mysql_data:/var/lib/mysql
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost",
-             "-u", "root", "--password=${MYSQL_ROOT_PASSWORD:-changeme}"]
-      interval: 5s
-      timeout: 5s
-      retries: 15
-
-  app:
-    build: .
-    restart: unless-stopped
-    ports:
-      - "5000:5000"
-    environment:
-      FLASK_APP: app
-      FLASK_ENV: production
-      SECRET_KEY: ${SECRET_KEY:?SECRET_KEY is required}
-      MYSQL_HOST: db
-      MYSQL_PORT: 3306
-      MYSQL_DB: ${MYSQL_DB:-baby_time_machine}
-      MYSQL_USER: ${MYSQL_USER:-btm_user}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?MYSQL_PASSWORD is required}
-      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-}
-      SMTP_HOST: ${SMTP_HOST:-}
-      SMTP_PORT: ${SMTP_PORT:-587}
-      SMTP_USER: ${SMTP_USER:-}
-      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
-      SMTP_FROM: ${SMTP_FROM:-}
-    volumes:
-      - images_data:/app/images
-    depends_on:
-      db:
-        condition: service_healthy
-
-volumes:
-  mysql_data:
-  images_data:
->>>>>>> 869a0f53c3616651baf139fd86324feb74df20db
