@@ -1001,6 +1001,28 @@ th {
   background: rgba(233, 143, 122, 0.15);
 }
 
+/* Dashboard tab navigation */
+.dashboard-tabs-section {
+  padding-top: 0;
+}
+
+.dashboard-tabs {
+  --track-color: transparent;
+}
+
+.dashboard-tabs::part(base) {
+  background: transparent;
+}
+
+.dashboard-tabs wa-tab-panel::part(base) {
+  padding: 0;
+}
+
+.tab-panel-content {
+  margin-top: 20px;
+  align-items: start;
+}
+
 /* 二维码样式 */
 .qrcode-section {
   padding: 24px;

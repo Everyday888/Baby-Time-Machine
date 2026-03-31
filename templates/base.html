@@ -126,6 +126,8 @@
         sessionStorage.setItem('pwa-prompt-dismissed', '1');
     }
 
+    const isAndroid = /Android/i.test(navigator.userAgent);
+
     if (isStandalone) {
         // 已安装为 PWA，不显示提示
     } else if (isIOS) {
@@ -137,11 +139,28 @@
         if (installBtn) installBtn.style.display = 'none';
         setTimeout(showPrompt, 3000);
     } else {
-        // Android/Chrome：监听 beforeinstallprompt
+        // Chrome/Edge：必须先调用 preventDefault() 才能延迟并保留提示
+        let promptFired = false;
         window.addEventListener('beforeinstallprompt', (event) => {
+            event.preventDefault();
             deferredPrompt = event;
+            promptFired = true;
             setTimeout(showPrompt, 3000);
         });
+
+        // 兼容不支持 beforeinstallprompt 的安卓浏览器（如三星、Firefox）
+        if (isAndroid) {
+            setTimeout(() => {
+                if (!promptFired && !hasSeenPrompt) {
+                    const promptP = installPromptEl ? installPromptEl.querySelector('p') : null;
+                    if (promptP) {
+                        promptP.innerHTML = '点击浏览器右上角菜单 <strong>⋮</strong> → 选择<strong>「添加到主屏幕」</strong>，即可像 App 一样使用本应用！';
+                    }
+                    if (installBtn) installBtn.style.display = 'none';
+                    showPrompt();
+                }
+            }, 4000);
+        }
     }
 
     // 安装按钮（仅 Android）
