@@ -1063,6 +1063,28 @@ th {
   }
 }
 
+/* ── 个人资料页 ─────────────────────────────────────── */
+
+.profile-meta-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 1rem;
+}
+
+.profile-meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 0.95rem;
+}
+
+.profile-divider {
+  border: none;
+  border-top: 1px solid var(--line);
+  margin: 1.6rem 0;
+}
+
 /* ── 邀请页专属样式 ─────────────────────────────────── */
 
 .invite-code-card {

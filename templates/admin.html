@@ -5,31 +5,32 @@
 {% block content %}
 <section class="section">
     <div class="dashboard-hero fade-in">
-        <div>
-            <div class="eyebrow">平台总览</div>
-            <h2 class="admin-title">管理员平台页面</h2>
-            <p class="dashboard-subtitle">现在除了总览，还支持家庭详情、用户停用和成长记录筛选，更接近真实后台。</p>
+        <div class="hero-card" style="width:100%;">
+            <div class="hero-card-top">
+                <div class="hero-card-identity">
+                    <span class="hero-role-tag">管理员</span>
+                    <h2 class="hero-family-name">平台总览</h2>
+                </div>
+                <a href="{{ url_for('admin_panel') }}">
+                    <wa-button type="button" appearance="outlined" variant="neutral" size="small">重置筛选</wa-button>
+                </a>
+            </div>
+            <div class="hero-stats-row">
+                <span class="stats-today-tag">汇总</span>
+                <span class="stat-pill">🏠 家庭 <strong>{{ totals.families }}</strong></span>
+                <span class="stat-pill">👥 成员 <strong>{{ totals.users }}</strong></span>
+                <span class="stat-pill">👶 宝宝 <strong>{{ totals.babies }}</strong></span>
+                <span class="stat-pill">📝 记录 <strong>{{ totals.events }}</strong></span>
+                <span class="stat-pill">🆕 近期用户 <strong>{{ recent_users|length }}</strong></span>
+            </div>
         </div>
-        <wa-badge variant="brand">管理员可见</wa-badge>
-    </div>
-
-    <div class="stats-grid fade-in" data-delay="1">
-        <div class="stat-card"><span class="event-tag">家庭总数</span><strong class="stat-number">{{ totals.families }}</strong></div>
-        <div class="stat-card"><span class="event-tag">成员总数</span><strong class="stat-number">{{ totals.users }}</strong></div>
-        <div class="stat-card"><span class="event-tag">宝宝总数</span><strong class="stat-number">{{ totals.babies }}</strong></div>
-        <div class="stat-card"><span class="event-tag">事件总数</span><strong class="stat-number">{{ totals.events }}</strong></div>
-        <div class="stat-card"><span class="event-tag">最近用户</span><strong class="stat-number">{{ recent_users|length }}</strong></div>
     </div>
 </section>
 
 <section class="section">
-    <div class="admin-card fade-in" data-delay="2">
+    <div class="admin-card fade-in" data-delay="1">
         <div class="section-split">
-            <div>
-                <h3 class="panel-title">记录筛选</h3>
-                <p class="panel-text">按家庭、类型、时间范围或关键词筛选成长记录。</p>
-            </div>
-            <a href="{{ url_for('admin_panel') }}"><wa-button type="button" appearance="outlined" variant="neutral">清空筛选</wa-button></a>
+            <h3 class="panel-title">筛选记录</h3>
         </div>
         <form method="get" class="filter-grid">
             <div class="field">
@@ -41,11 +42,11 @@
             </div>
             <div class="field">
                 <wa-select label="事件类型" name="event_type" clearable value="{{ filters.event_type }}">
-                    <wa-option value="feeding">喂养</wa-option>
-                    <wa-option value="sleep">睡眠</wa-option>
-                    <wa-option value="diaper">排便 / 尿布</wa-option>
-                    <wa-option value="health">健康观察</wa-option>
-                    <wa-option value="milestone">成长里程碑</wa-option>
+                    <wa-option value="feeding">🍼 喂养</wa-option>
+                    <wa-option value="sleep">😴 睡眠</wa-option>
+                    <wa-option value="diaper">💩 如厕 / 尿布</wa-option>
+                    <wa-option value="health">🩺 健康观察</wa-option>
+                    <wa-option value="milestone">🌟 成长里程碑</wa-option>
                 </wa-select>
             </div>
             <div class="field">
@@ -65,7 +66,7 @@
 </section>
 
 <section class="admin-grid section">
-    <div class="admin-card fade-in" data-delay="3">
+    <div class="admin-card fade-in" data-delay="2">
         <h3 class="panel-title">家庭列表</h3>
         {% if family_stats %}
             <div class="family-list">
@@ -76,7 +77,9 @@
                                 <h4 class="card-heading">{{ item.family.name }}</h4>
                                 <div class="table-note">邀请码 {{ item.family.invite_code }}</div>
                             </div>
-                            <a href="{{ url_for('admin_family_detail', family_id=item.family.id) }}"><wa-button type="button" size="small" appearance="outlined" variant="neutral">查看家庭详情</wa-button></a>
+                            <a href="{{ url_for('admin_family_detail', family_id=item.family.id) }}">
+                                <wa-button type="button" size="small" appearance="outlined" variant="neutral">详情</wa-button>
+                            </a>
                         </div>
                         <div class="mini-facts">
                             <span class="mini-chip">成员 {{ item.user_count }}</span>
@@ -89,11 +92,11 @@
                 {% endfor %}
             </div>
         {% else %}
-            <div class="empty-state"><p class="panel-text">当前还没有家庭数据。</p></div>
+            <div class="empty-state"><p class="panel-text">暂无家庭数据。</p></div>
         {% endif %}
     </div>
 
-    <div class="admin-card fade-in" data-delay="4">
+    <div class="admin-card fade-in" data-delay="3">
         <h3 class="panel-title">最近注册用户</h3>
         <div class="table-wrap">
             <table>
@@ -101,7 +104,7 @@
                     <tr>
                         <th>姓名</th>
                         <th>角色</th>
-                        <th>邮箱</th>
+                        <th>手机号</th>
                         <th>状态</th>
                         <th>加入时间</th>
                     </tr>
@@ -111,8 +114,12 @@
                         <tr>
                             <td>{{ user.full_name }}</td>
                             <td>{{ role_labels.get(user.role, user.role) }}</td>
-                            <td>{{ user.email }}</td>
-                            <td>{{ '正常' if user.is_active else '已停用' }}</td>
+                            <td>{{ user.phone }}</td>
+                            <td>
+                                <span class="invite-member-badge {% if user.is_active %}{% else %}status-overdue{% endif %}">
+                                    {{ '正常' if user.is_active else '已停用' }}
+                                </span>
+                            </td>
                             <td>{{ user.created_at.strftime('%Y-%m-%d') }}</td>
                         </tr>
                     {% endfor %}
@@ -123,7 +130,7 @@
 </section>
 
 <section class="section">
-    <div class="admin-card fade-in" data-delay="5">
+    <div class="admin-card fade-in" data-delay="4">
         <h3 class="panel-title">筛选结果</h3>
         <div class="table-wrap">
             <table>
@@ -149,7 +156,7 @@
                         </tr>
                     {% else %}
                         <tr>
-                            <td colspan="6">没有符合筛选条件的记录。</td>
+                            <td colspan="6" style="color:var(--muted);text-align:center;padding:20px;">没有符合筛选条件的记录。</td>
                         </tr>
                     {% endfor %}
                 </tbody>
