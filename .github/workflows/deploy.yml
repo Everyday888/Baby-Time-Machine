@@ -1,0 +1,21 @@
+name: 自动部署到服务器
+on:
+  push:
+    branches: [ main ]  # 推送到 main 分支自动部署
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 登录服务器并自动更新部署
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd /opt/Baby-Time-Machine
+            git pull origin main
+            docker-compose down
+            docker-compose up -d --build
+            docker image prune -af

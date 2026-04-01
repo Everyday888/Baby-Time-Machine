@@ -1,32 +1,32 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 
-{% block title %}邀请家�?| 宝贝时光机{% endblock %}
+{% block title %}邀请家人 | 宝贝时光机{% endblock %}
 
 {% block content %}
 <section class="auth-layout fade-in">
 
-    <!-- 左：邀请操�?-->
+    <!-- 左：邀请操作 -->
     <div class="auth-panel" data-delay="1">
         <span class="eyebrow">🏠 {{ family_members[0].family_name if family_members else '家庭空间' }}</span>
-        <h2>邀请家人一起记�?👨‍👩‍👧‍�?/h2>
-        <p class="panel-text">把邀请码或链接发给家人，扫码即可加入同一个宝贝空间�?/p>
+        <h2>邀请家人一起记录 👨‍👩‍👧‍👦</h2>
+        <p class="panel-text">把邀请码或链接发给家人，扫码即可加入同一个宝贝空间。</p>
 
         <!-- 邀请码 -->
         <div class="invite-code-card">
             <div class="invite-code-label">家庭邀请码</div>
             <div class="invite-code-row">
                 <span class="invite-code-big" id="invite-code">{{ invite_code }}</span>
-                <button class="invite-action-btn copy-btn" onclick="copyToClipboard()">📋 复制�?/button>
+                <button class="invite-action-btn copy-btn" onclick="copyToClipboard()">📋 复制码</button>
             </div>
         </div>
 
-        <!-- 二维�?-->
+        <!-- 二维码 -->
         <div class="invite-qr-block">
             <div class="invite-qr-wrap">
                 <div id="qrcode-canvas" class="qrcode-canvas" data-qrcode="{{ join_url }}" data-qrcode-type="invite"></div>
             </div>
             <div class="invite-qr-side">
-                <p class="panel-text" style="margin:0 0 10px;">扫描二维码或复制链接，发给家人后直接加入�?/p>
+                <p class="panel-text" style="margin:0 0 10px;">扫描二维码或复制链接，发给家人后直接加入。</p>
 
                 <div class="invite-link-box">
                     <div class="invite-link-header">
@@ -38,16 +38,16 @@
 
                 {% if join_url_is_local %}
                 <div class="invite-warning">
-                    ⚠️ 当前为本机地址，手机无法访问。请用局域网 IP 打开，或�?.env 配置 <code>PUBLIC_BASE_URL</code>�?
+                    ⚠️ 当前为本机地址，手机无法访问。请用局域网 IP 打开，或在 .env 配置 <code>PUBLIC_BASE_URL</code>。
                 </div>
                 {% endif %}
 
-                <button class="invite-download-btn" onclick="downloadQRCode()">⬇️ 下载二维�?/button>
+                <button class="invite-download-btn" onclick="downloadQRCode()">⬇️ 下载二维码</button>
             </div>
         </div>
 
         <div class="stack-actions" style="margin-top:8px;">
-            <a href="{{ url_for('dashboard') }}"><wa-button type="button" appearance="outlined" variant="neutral">�?返回家庭空间</wa-button></a>
+            <a href="{{ url_for('dashboard') }}"><wa-button type="button" appearance="outlined" variant="neutral">← 返回家庭空间</wa-button></a>
         </div>
     </div>
 
@@ -59,16 +59,24 @@
         <div class="invite-members-list">
             {% if family_members %}
                 {% set role_map = {
-                    'father': '爸爸', 'mother': '妈妈',
-                    'grandpa': '爷爷', 'grandma': '奶奶',
-                    'grandpa_maternal': '外公', 'grandma_maternal': '外婆',
-                    'guardian': '看护�?, 'admin': '管理�?
+                    'father': '爸爸',
+                    'mother': '妈妈',
+                    'grandpa': '爷爷',
+                    'grandma': '奶奶',
+                    'grandpa_maternal': '外公',
+                    'grandma_maternal': '外婆',
+                    'guardian': '看护人',
+                    'admin': '管理员'
                 } %}
                 {% set role_emoji = {
-                    'father': '👨', 'mother': '👩',
-                    'grandpa': '👴', 'grandma': '👵',
-                    'grandpa_maternal': '👴', 'grandma_maternal': '👵',
-                    'guardian': '🧡', 'admin': '�?
+                    'father': '👨',
+                    'mother': '👩',
+                    'grandpa': '👴',
+                    'grandma': '👵',
+                    'grandpa_maternal': '👴',
+                    'grandma_maternal': '👵',
+                    'guardian': '🧡',
+                    'admin': '⭐'
                 } %}
                 {% for member in family_members %}
                 <div class="invite-member-item{% if member.id == current_user.id %} invite-member-item--self{% endif %}">
@@ -78,14 +86,14 @@
                         <span class="invite-member-role">{{ role_map.get(member.role, member.role) }}</span>
                     </div>
                     {% if member.id == current_user.id %}
-                        <span class="invite-member-badge invite-member-badge--self">�?/span>
+                        <span class="invite-member-badge invite-member-badge--self">我</span>
                     {% else %}
-                        <span class="invite-member-badge">已加�?/span>
+                        <span class="invite-member-badge">已加入</span>
                     {% endif %}
                 </div>
                 {% endfor %}
             {% else %}
-                <div class="empty-state"><p class="panel-text">目前只有你一位成员，快邀请家人吧�?/p></div>
+                <div class="empty-state"><p class="panel-text">目前只有你一位成员，快邀请家人吧～</p></div>
             {% endif %}
         </div>
     </div>
@@ -127,11 +135,11 @@
     }
 
     function copyToClipboard() {
-        copyText(document.getElementById('invite-code').textContent.trim(), '.copy-btn', '�?已复�?, '📋 复制�?);
+        copyText(document.getElementById('invite-code').textContent.trim(), '.copy-btn', '✅ 已复制', '📋 复制码');
     }
 
     function copyJoinLink() {
-        copyText(joinUrl, '.link-copy-btn', '已复�?, '复制链接');
+        copyText(joinUrl, '.link-copy-btn', '已复制', '复制链接');
     }
 
     function downloadQRCode() {
