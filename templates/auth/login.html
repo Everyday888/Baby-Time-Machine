@@ -1,40 +1,62 @@
 {% extends "base.html" %}
 
-{% block title %}登录 | 宝贝时光机{% endblock %}
+{% block title %}欢迎登录 | 宝贝时光机{% endblock %}
 
 {% block content %}
-<section class="auth-layout">
-    <div class="info-panel fade-in">
-        <span class="eyebrow">欢迎回来👋</span>
-        <h2>继续记录宝宝的成长点滴</h2>
-        <p class="panel-text">登录后，您可以：</p>
-        <div class="meta-list">
-            <div class="mini-chip">查看宝宝今天的作息与成长变化</div>
-            <div class="mini-chip">进入家庭空间，共享宝宝档案、照片墙、成长曲线</div>
-            <div class="mini-chip">接收疫苗提醒，查看成长时间轴</div>
-            <div class="mini-chip">与家人实时协作，共同记录宝宝成长</div>
-        </div>
-    </div>
+<style>
+/* 移动端强制首屏优先登录框，桌面保持左右美观 */
+@media (max-width: 768px) {
+  .auth-layout {
+    flex-direction: column-reverse !important;
+  }
+  .info-panel {
+    padding: 1rem 1.2rem !important;
+    max-height: unset !important;
+  }
+  .auth-panel {
+    padding: 1.5rem 1.2rem !important;
+    flex: none !important;
+  }
+}
+</style>
 
+<section class="auth-layout">
+    <!-- 移动端：登录框自动跑到最顶部（首屏可见） -->
     <div class="auth-panel fade-in" data-delay="1">
-        <h2>登录账号</h2>
-        <p class="panel-text">输入手机号（或邮箱）与密码进入宝宝家庭空间。</p>
+        <h2>欢迎回家 👋</h2>
+        <p class="panel-text">输入账号，走进宝贝的成长小窝</p>
         <form method="post" class="form-stack">
             <input type="hidden" name="next" value="{{ next_url or '' }}">
             <div class="field">
-                <wa-input label="手机号或邮箱" id="account" name="account" value="{{ form.get('account', '') }}" placeholder="请输入手机号（支持邮箱）" required clearable></wa-input>
+                <wa-input label="手机号 / 邮箱" id="account" name="account" 
+                          value="{{ form.get('account', '') }}" placeholder="填写你的登录账号" required clearable></wa-input>
             </div>
             <div class="field">
-                <wa-input label="密码" id="password" name="password" type="password" password-toggle placeholder="请输入密码" required></wa-input>
+                <wa-input label="登录密码" id="password" name="password" 
+                          type="password" password-toggle placeholder="输入密码" required></wa-input>
             </div>
             <div class="field compact-field">
-                <wa-checkbox name="remember_me">14 天内记住我</wa-checkbox>
+                <wa-checkbox name="remember_me">14天自动登录</wa-checkbox>
             </div>
             <div class="stack-actions">
-                <wa-button type="submit" variant="brand">登录</wa-button>
-                <a href="{{ url_for('forgot_password') }}"><wa-button type="button" appearance="outlined" variant="neutral">忘记密码</wa-button></a>
+                <wa-button type="submit" variant="brand">立即进入</wa-button>
+                <a href="{{ url_for('forgot_password') }}">
+                    <wa-button type="button" appearance="outlined" variant="neutral">找回密码</wa-button>
+                </a>
             </div>
         </form>
+    </div>
+
+    <!-- 移动端：简介放登录框下方，精简不挡操作 -->
+    <div class="info-panel fade-in">
+        <span class="eyebrow">暖心小提示</span>
+        <h3>在这里，温柔记录每一刻</h3>
+        <div class="meta-list">
+            <div class="mini-chip">👶 全家共享宝贝档案 & 暖心照片</div>
+            <div class="mini-chip">📊 记录作息、身高体重成长曲线</div>
+            <div class="mini-chip">💉 疫苗贴心提醒，守护健康</div>
+            <div class="mini-chip">👨‍👩‍👧‍👦 家人一起，共同陪伴长大</div>
+        </div>
     </div>
 </section>
 {% endblock %}

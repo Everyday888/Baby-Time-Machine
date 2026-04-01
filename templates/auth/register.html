@@ -1,77 +1,123 @@
 {% extends "base.html" %}
 
-{% block title %}注册 | 宝贝时光机{% endblock %}
+{% block title %}轻松注册 | 宝贝时光机{% endblock %}
 
 {% block content %}
 <section class="auth-layout">
-    <div class="info-panel fade-in">
-        <span class="eyebrow">加入家庭 👪</span>
-        <h2>欢迎加入宝宝的成长之旅 👶</h2>
-        <p class="panel-text">创建家庭空间或加入已有家庭，与家人一起记录宝宝的每一个珍贵瞬间</p>
-        <div class="stack-actions">
-            <wa-button type="button" variant="brand" data-family-mode="create">创建新家庭</wa-button>
-            <wa-button type="button" appearance="outlined" variant="neutral" data-family-mode="join">加入已有家庭</wa-button>
+  <div class="auth-panel fade-in" data-delay="1">
+    <h2>轻松入驻 👋</h2>
+    <p class="panel-text">30 秒注册，开启宝贝成长记录</p>
+
+    <form method="post" class="form-stack" id="regForm">
+      <input type="hidden" name="family_mode" value="{{ form.get('family_mode', 'create') }}" data-family-mode-input>
+
+      <!-- 称呼 + 角色 -->
+      <div class="grid-two">
+        <div class="field">
+          <wa-input label="我的称呼" id="full_name" name="full_name"
+            value="{{ form.get('full_name', '') }}" placeholder="比如：宝宝妈妈" required clearable></wa-input>
         </div>
+        <div class="field">
+          <wa-select label="身份角色" id="role" name="role" value="{{ form.get('role', 'mother') }}" required>
+            <wa-option value="mother">👩 妈妈</wa-option>
+            <wa-option value="father">👨 爸爸</wa-option>
+            <wa-option value="grandma">👵 奶奶</wa-option>
+            <wa-option value="grandpa">👴 爷爷</wa-option>
+            <wa-option value="grandma_maternal">👵 外婆</wa-option>
+            <wa-option value="grandpa_maternal">👴 外公</wa-option>
+            <wa-option value="guardian">🧡 看护人</wa-option>
+          </wa-select>
+        </div>
+      </div>
+
+      <!-- 手机号 + 密码 -->
+      <div class="grid-two">
+        <div class="field">
+          <wa-input label="手机号" id="phone" name="phone" type="tel"
+            value="{{ form.get('phone', '') }}" placeholder="用于登录" required clearable></wa-input>
+        </div>
+        <div class="field">
+          <wa-input label="登录密码" id="password" name="password"
+            type="password" password-toggle placeholder="至少 6 位" required></wa-input>
+        </div>
+      </div>
+      <div class="form-hint" id="pwdTip">密码至少 6 位数字或字母</div>
+
+      <!-- 家庭模式切换 —— 在表单内部 -->
+      <div class="family-mode-toggle">
+        <wa-button type="button" class="mode-btn" data-family-mode="create"
+          variant="{% if form.get('family_mode','create') != 'join' %}brand{% else %}neutral{% endif %}"
+          appearance="{% if form.get('family_mode','create') != 'join' %}filled{% else %}outlined{% endif %}">
+          🏠 创建新家
+        </wa-button>
+        <wa-button type="button" class="mode-btn" data-family-mode="join"
+          variant="{% if form.get('family_mode','create') == 'join' %}brand{% else %}neutral{% endif %}"
+          appearance="{% if form.get('family_mode','create') == 'join' %}filled{% else %}outlined{% endif %}">
+          🔑 加入家人
+        </wa-button>
+      </div>
+
+      <div class="field {% if form.get('family_mode','create') == 'join' %}hidden{% endif %}" data-family-create>
+        <wa-input label="给小家起个名字" id="family_name" name="family_name"
+          value="{{ form.get('family_name', '') }}" placeholder="比如：小糯米一家" clearable></wa-input>
+        <div class="form-hint">建好后自动生成邀请码，发给家人就能加入</div>
+      </div>
+
+      <div class="field {% if form.get('family_mode','create') != 'join' %}hidden{% endif %}" data-family-join>
+        <wa-input label="家庭邀请码" id="invite_code" name="invite_code"
+          value="{{ form.get('invite_code', '') }}" placeholder="输入 6 位专属邀请码" clearable></wa-input>
+        <div class="form-hint">一键加入家人的共享空间</div>
+      </div>
+
+      <div class="field compact-field">
+        <wa-checkbox id="accepted_terms" name="accepted_terms"
+          {% if form.get('accepted_terms') == 'on' %}checked{% endif %}>
+          同意家人共享宝贝记录 &amp; 照片
+        </wa-checkbox>
+      </div>
+
+      <div class="stack-actions">
+        <wa-button type="submit" variant="brand" id="register-submit"
+          {% if form.get('accepted_terms') != 'on' %}disabled{% endif %}>完成入驻</wa-button>
+        <a href="{{ url_for('login') }}"><wa-button type="button" appearance="outlined" variant="neutral">已有账号</wa-button></a>
+      </div>
+    </form>
+  </div>
+
+  <div class="info-panel fade-in">
+    <span class="eyebrow">加入宝贝时光机 👶</span>
+    <h2>全家一起，温柔记录长大</h2>
+    <div class="meta-list" style="margin-top:1rem;">
+      <div class="mini-chip">🏠 建小家 / 进已有家庭</div>
+      <div class="mini-chip">📸 存照片、记日常</div>
+      <div class="mini-chip">📈 看成长曲线、疫苗提醒</div>
     </div>
-
-    <div class="auth-panel fade-in" data-delay="1">
-        <h2>注册账号</h2>
-        <form method="post" class="form-stack">
-            <input type="hidden" name="family_mode" value="{{ form.get('family_mode', 'create') }}" data-family-mode-input>
-
-            <div class="field">
-                <wa-input label="姓名" id="full_name" name="full_name" value="{{ form.get('full_name', '') }}" placeholder="请输入姓名" required clearable></wa-input>
-            </div>
-
-            <div class="field">
-                <wa-select label="角色" id="role" name="role" value="{{ form.get('role', 'father') }}" required>
-                    <wa-option value="father">爸爸</wa-option>
-                    <wa-option value="mother">妈妈</wa-option>
-                    <wa-option value="grandpa">爷爷</wa-option>
-                    <wa-option value="grandma">奶奶</wa-option>
-                    <wa-option value="grandpa_maternal">外公</wa-option>
-                    <wa-option value="grandma_maternal">外婆</wa-option>
-                    <wa-option value="guardian">看护人</wa-option>
-                </wa-select>
-            </div>
-
-            <div class="field">
-                <wa-input label="手机号" id="phone" name="phone" type="tel" value="{{ form.get('phone', '') }}" placeholder="请输入手机号" required clearable></wa-input>
-            </div>
-
-            <div class="field">
-                <wa-input label="邮箱（可选）" id="email" name="email" type="email" value="{{ form.get('email', '') }}" placeholder="请输入邮箱" clearable></wa-input>
-            </div>
-
-            <div class="field">
-                <wa-input label="密码" id="password" name="password" type="password" password-toggle placeholder="至少 6 位" required></wa-input>
-            </div>
-
-            <div class="field">
-                <wa-input label="确认密码" id="confirm_password" name="confirm_password" type="password" password-toggle placeholder="请再次输入密码" required></wa-input>
-            </div>
-
-            <div class="field {% if form.get('family_mode', 'create') == 'join' %}hidden{% endif %}" data-family-create>
-                <wa-input label="家庭名称" id="family_name" name="family_name" value="{{ form.get('family_name', '') }}" placeholder="例如：小满一家" clearable></wa-input>
-                <div class="form-hint">创建后将生成邀请码，家人可通过邀请码加入</div>
-            </div>
-
-            <div class="field {% if form.get('family_mode', 'create') != 'join' %}hidden{% endif %}" data-family-join>
-                <wa-input label="家庭邀请码" id="invite_code" name="invite_code" value="{{ form.get('invite_code', '') }}" placeholder="请输入 6 位邀请码" clearable></wa-input>
-                <div class="form-hint">加入后可与家人共享同一宝宝页面与成长记录</div>
-            </div>
-
-            <div class="field compact-field">
-                <wa-checkbox id="accepted_terms" name="accepted_terms" {% if form.get('accepted_terms') == 'on' %}checked{% endif %}>
-                    我已知晓家庭成员将共享宝宝页面、照片与成长记录
-                </wa-checkbox>
-            </div>
-
-            <div class="stack-actions">
-                <wa-button type="submit" variant="brand" id="register-submit" {% if form.get('accepted_terms') != 'on' %}disabled{% endif %}>完成注册</wa-button>
-                <a href="{{ url_for('login') }}"><wa-button type="button" appearance="outlined" variant="neutral">已有账号</wa-button></a>
-            </div>
-        </form>
-    </div>
+  </div>
 </section>
+
+<script>
+const pwd = document.getElementById('password');
+const tip = document.getElementById('pwdTip');
+pwd.addEventListener('input', () => {
+  if (pwd.value.length > 0 && pwd.value.length < 6) {
+    tip.textContent = '密码至少 6 位哦';
+    tip.style.color = '#c0392b';
+  } else {
+    tip.textContent = '密码至少 6 位数字或字母';
+    tip.style.color = '';
+  }
+});
+
+// Highlight active mode button
+document.querySelectorAll('[data-family-mode]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const mode = btn.dataset.familyMode;
+    document.querySelectorAll('[data-family-mode]').forEach(b => {
+      const active = b.dataset.familyMode === mode;
+      b.setAttribute('variant', active ? 'brand' : 'neutral');
+      b.setAttribute('appearance', active ? 'filled' : 'outlined');
+    });
+  });
+});
+</script>
 {% endblock %}

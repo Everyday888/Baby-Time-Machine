@@ -1,116 +1,95 @@
 {% extends "base.html" %}
 
-{% block title %}邀请家庭成员 | 宝贝时光机{% endblock %}
+{% block title %}邀请家�?| 宝贝时光机{% endblock %}
 
 {% block content %}
-<section class="page-section">
-    <div class="content-card fade-in">
-        <div class="card-header">
-            <h1>📱 邀请家庭成员</h1>
-            <p class="subtitle">生成邀请码，让家人一起记录宝宝的成长</p>
-        </div>
+<section class="auth-layout fade-in">
 
-        <div class="invite-container">
-            <!-- 邀请码部分 -->
-            <div class="invite-panel">
-                <h2>家庭邀请码</h2>
-                <div class="invite-code-display">
-                    <div class="code-box">
-                        <span class="invite-code" id="invite-code">{{ invite_code }}</span>
-                        <button class="copy-btn" onclick="copyToClipboard()">📋 复制</button>
-                    </div>
-                </div>
+    <!-- 左：邀请操�?-->
+    <div class="auth-panel" data-delay="1">
+        <span class="eyebrow">🏠 {{ family_members[0].family_name if family_members else '家庭空间' }}</span>
+        <h2>邀请家人一起记�?👨‍👩‍👧‍�?/h2>
+        <p class="panel-text">把邀请码或链接发给家人，扫码即可加入同一个宝贝空间�?/p>
 
-                <!-- 二维码部分 -->
-                <div class="qrcode-section">
-                    <h3>扫码加入</h3>
-                    <div class="qrcode-container">
-                        <div id="qrcode-canvas" class="qrcode-canvas" data-qrcode="{{ join_url }}" data-qrcode-type="invite"></div>
-                    </div>
-                    <p class="qrcode-hint">朋友扫描二维码即可快速加入你的家庭</p>
-                    <div class="qrcode-link-wrap">
-                        <div class="qrcode-link-head">
-                            <div class="qrcode-link-label">加入链接</div>
-                            <button class="link-copy-btn" type="button" onclick="copyJoinLink()">复制链接</button>
-                        </div>
-                        <div class="qrcode-link-text">{{ join_url }}</div>
-                    </div>
-                    {% if join_url_is_local %}
-                        <div class="qrcode-warning">
-                            当前二维码使用的是本机地址（localhost/127.0.0.1），微信在手机上无法访问。请改为局域网 IP 访问，或在 .env 配置 PUBLIC_BASE_URL。
-                        </div>
-                    {% endif %}
-                    <button class="download-btn" onclick="downloadQRCode()">⬇️ 下载二维码</button>
-                </div>
-
-                <!-- 分享提示 -->
-                <div class="share-tips">
-                    <h3>分享方式</h3>
-                    <ul class="tips-list">
-                        <li>👥 <strong>微信分享</strong>：分享邀请码给家人朋友</li>
-                        <li>📲 <strong>扫描二维码</strong>：打开摄像头拍照扫描</li>
-                        <li>💬 <strong>短信分享</strong>：将邀请码发送给家人</li>
-                        <li>📧 <strong>邮件分享</strong>：复制邮件链接分享给家人</li>
-                    </ul>
-                </div>
-            </div>
-
-            <!-- 成员列表部分 -->
-            <div class="family-panel">
-                <h2>当前家庭成员</h2>
-                <div class="members-list">
-                    {% if family_members %}
-                        {% for member in family_members %}
-                        <div class="member-item">
-                            <div class="member-icon">
-                                {% if member.role == 'father' %}
-                                    👨
-                                {% elif member.role == 'mother' %}
-                                    👩
-                                {% elif member.role in ['grandpa', 'grandpa_maternal'] %}
-                                    👴
-                                {% elif member.role in ['grandma', 'grandma_maternal'] %}
-                                    👵
-                                {% else %}
-                                    👤
-                                {% endif %}
-                            </div>
-                            <div class="member-info">
-                                <div class="member-name">{{ member.full_name }}</div>
-                                <div class="member-role">
-                                    {% set role_map = {
-                                        'father': '爸爸',
-                                        'mother': '妈妈',
-                                        'grandpa': '爷爷',
-                                        'grandma': '奶奶',
-                                        'grandpa_maternal': '外公',
-                                        'grandma_maternal': '外婆',
-                                        'guardian': '看护人'
-                                    } %}
-                                    {{ role_map.get(member.role, member.role) }}
-                                </div>
-                            </div>
-                            <div class="member-status">
-                                {% if member.id == current_user.id %}
-                                    <span class="badge badge-self">你</span>
-                                {% else %}
-                                    <span class="badge badge-active">已加入</span>
-                                {% endif %}
-                            </div>
-                        </div>
-                        {% endfor %}
-                    {% else %}
-                        <p class="empty-state">目前只有你一个家庭成员</p>
-                    {% endif %}
-                </div>
+        <!-- 邀请码 -->
+        <div class="invite-code-card">
+            <div class="invite-code-label">家庭邀请码</div>
+            <div class="invite-code-row">
+                <span class="invite-code-big" id="invite-code">{{ invite_code }}</span>
+                <button class="invite-action-btn copy-btn" onclick="copyToClipboard()">📋 复制�?/button>
             </div>
         </div>
 
-        <!-- 返回按钮 -->
-        <div class="action-buttons">
-            <a href="{{ url_for('dashboard') }}"><wa-button type="button" variant="neutral">返回家庭空间</wa-button></a>
+        <!-- 二维�?-->
+        <div class="invite-qr-block">
+            <div class="invite-qr-wrap">
+                <div id="qrcode-canvas" class="qrcode-canvas" data-qrcode="{{ join_url }}" data-qrcode-type="invite"></div>
+            </div>
+            <div class="invite-qr-side">
+                <p class="panel-text" style="margin:0 0 10px;">扫描二维码或复制链接，发给家人后直接加入�?/p>
+
+                <div class="invite-link-box">
+                    <div class="invite-link-header">
+                        <span class="hero-section-label">加入链接</span>
+                        <button class="invite-action-btn link-copy-btn" type="button" onclick="copyJoinLink()">复制链接</button>
+                    </div>
+                    <div class="invite-link-text">{{ join_url }}</div>
+                </div>
+
+                {% if join_url_is_local %}
+                <div class="invite-warning">
+                    ⚠️ 当前为本机地址，手机无法访问。请用局域网 IP 打开，或�?.env 配置 <code>PUBLIC_BASE_URL</code>�?
+                </div>
+                {% endif %}
+
+                <button class="invite-download-btn" onclick="downloadQRCode()">⬇️ 下载二维�?/button>
+            </div>
+        </div>
+
+        <div class="stack-actions" style="margin-top:8px;">
+            <a href="{{ url_for('dashboard') }}"><wa-button type="button" appearance="outlined" variant="neutral">�?返回家庭空间</wa-button></a>
         </div>
     </div>
+
+    <!-- 右：家庭成员 -->
+    <div class="info-panel fade-in" data-delay="2">
+        <span class="eyebrow">👥 当前成员</span>
+        <h2 style="margin-bottom:16px;">{{ family_members | length }} 位家人已加入</h2>
+
+        <div class="invite-members-list">
+            {% if family_members %}
+                {% set role_map = {
+                    'father': '爸爸', 'mother': '妈妈',
+                    'grandpa': '爷爷', 'grandma': '奶奶',
+                    'grandpa_maternal': '外公', 'grandma_maternal': '外婆',
+                    'guardian': '看护�?, 'admin': '管理�?
+                } %}
+                {% set role_emoji = {
+                    'father': '👨', 'mother': '👩',
+                    'grandpa': '👴', 'grandma': '👵',
+                    'grandpa_maternal': '👴', 'grandma_maternal': '👵',
+                    'guardian': '🧡', 'admin': '�?
+                } %}
+                {% for member in family_members %}
+                <div class="invite-member-item{% if member.id == current_user.id %} invite-member-item--self{% endif %}">
+                    <span class="invite-member-emoji">{{ role_emoji.get(member.role, '👤') }}</span>
+                    <div class="invite-member-info">
+                        <strong>{{ member.full_name }}</strong>
+                        <span class="invite-member-role">{{ role_map.get(member.role, member.role) }}</span>
+                    </div>
+                    {% if member.id == current_user.id %}
+                        <span class="invite-member-badge invite-member-badge--self">�?/span>
+                    {% else %}
+                        <span class="invite-member-badge">已加�?/span>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="empty-state"><p class="panel-text">目前只有你一位成员，快邀请家人吧�?/p></div>
+            {% endif %}
+        </div>
+    </div>
+
 </section>
 
 <script src="{{ url_for('node_modules', filename='qr-creator/dist/qr-creator.min.js') }}"></script>
@@ -120,369 +99,47 @@
 
     function setCopyButtonSuccess(selector, successText, defaultText) {
         const button = document.querySelector(selector);
-        if (!button) {
-            return;
-        }
+        if (!button) return;
         button.textContent = successText;
-        setTimeout(() => {
-            button.textContent = defaultText;
-        }, 2000);
+        setTimeout(() => { button.textContent = defaultText; }, 2000);
     }
 
     function fallbackCopyText(text) {
         const textarea = document.createElement('textarea');
         textarea.value = text;
-        textarea.setAttribute('readonly', 'readonly');
-        textarea.style.position = 'fixed';
-        textarea.style.left = '-9999px';
+        textarea.setAttribute('readonly', '');
+        textarea.style.cssText = 'position:fixed;left:-9999px';
         document.body.appendChild(textarea);
         textarea.select();
         textarea.setSelectionRange(0, textarea.value.length);
-
-        try {
-            const copied = document.execCommand('copy');
-            document.body.removeChild(textarea);
-            return copied;
-        } catch (err) {
-            document.body.removeChild(textarea);
-            return false;
-        }
+        const ok = document.execCommand('copy');
+        document.body.removeChild(textarea);
+        return ok;
     }
 
-    function copyText(text, selector, successText, defaultText, fallbackMessage) {
+    function copyText(text, selector, successText, defaultText) {
+        const done = () => setCopyButtonSuccess(selector, successText, defaultText);
         if (navigator.clipboard && window.isSecureContext) {
-            navigator.clipboard.writeText(text).then(() => {
-                setCopyButtonSuccess(selector, successText, defaultText);
-            }).catch((err) => {
-                console.error('复制失败:', err);
-                if (fallbackCopyText(text)) {
-                    setCopyButtonSuccess(selector, successText, defaultText);
-                    return;
-                }
-                alert(fallbackMessage);
-            });
-            return;
+            navigator.clipboard.writeText(text).then(done).catch(() => { fallbackCopyText(text) && done(); });
+        } else {
+            fallbackCopyText(text) && done();
         }
-
-        if (fallbackCopyText(text)) {
-            setCopyButtonSuccess(selector, successText, defaultText);
-            return;
-        }
-
-        alert(fallbackMessage);
     }
 
-    // 复制邀请码到剪贴板
     function copyToClipboard() {
-        const inviteCode = document.getElementById('invite-code').textContent;
-        copyText(
-            inviteCode,
-            '.copy-btn',
-            '✅ 已复制',
-            '📋 复制',
-            '当前环境不支持自动复制，请手动复制邀请码。'
-        );
+        copyText(document.getElementById('invite-code').textContent.trim(), '.copy-btn', '�?已复�?, '📋 复制�?);
     }
 
     function copyJoinLink() {
-        copyText(
-            joinUrl,
-            '.link-copy-btn',
-            '已复制链接',
-            '复制链接',
-            '当前环境不支持自动复制，请手动复制加入链接。'
-        );
+        copyText(joinUrl, '.link-copy-btn', '已复�?, '复制链接');
     }
 
-    // 下载二维码
     function downloadQRCode() {
         const generator = new QRCodeGenerator();
-        const inviteCode = document.getElementById('invite-code').textContent;
-
+        const code = document.getElementById('invite-code').textContent.trim();
         generator.renderQRCode('qrcode-canvas', joinUrl, 'invite').then(base64 => {
-            if (base64) {
-                generator.downloadQRCode(base64, `邀请码-${inviteCode}.png`);
-            }
+            if (base64) generator.downloadQRCode(base64, `邀请码-${code}.png`);
         });
     }
-
-    // qrcode-generator.js 内部会自动初始化 data-qrcode 容器
 </script>
-
-<style>
-    .page-section {
-        padding: 40px 0;
-        max-width: 900px;
-        margin: 0 auto;
-    }
-
-    .content-card {
-        background: var(--panel-strong);
-        border-radius: var(--radius-lg);
-        border: 1px solid var(--line);
-        padding: 40px;
-        box-shadow: var(--shadow);
-    }
-
-    .card-header {
-        margin-bottom: 40px;
-        text-align: center;
-    }
-
-    .card-header h1 {
-        margin: 0 0 8px;
-        font-size: 2rem;
-    }
-
-    .subtitle {
-        color: var(--muted);
-        font-size: 1.1rem;
-        margin: 0;
-    }
-
-    .invite-container {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 40px;
-        margin-bottom: 40px;
-    }
-
-    .invite-panel,
-    .family-panel {
-        background: rgba(255, 255, 255, 0.5);
-        padding: 24px;
-        border-radius: var(--radius-md);
-        border: 1px solid var(--line);
-    }
-
-    .invite-panel h2,
-    .family-panel h2 {
-        margin: 0 0 20px;
-        font-size: 1.25rem;
-        color: var(--ink);
-    }
-
-    .code-box {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        margin-bottom: 24px;
-        padding: 16px;
-        background: linear-gradient(135deg, var(--accent-soft), rgba(255, 232, 190, 0.5));
-        border-radius: var(--radius-md);
-        border: 1px solid var(--accent);
-    }
-
-    .invite-code {
-        font-size: 1.4rem;
-        font-weight: 700;
-        color: #8a4337;
-        letter-spacing: 4px;
-        font-family: monospace;
-        flex: 1;
-    }
-
-    .copy-btn {
-        padding: 8px 14px;
-        background: var(--brand);
-        color: white;
-        border: none;
-        border-radius: var(--radius-sm);
-        cursor: pointer;
-        font-weight: 600;
-        font-size: 0.9rem;
-        transition: all 0.2s;
-    }
-
-    .copy-btn:hover {
-        background: var(--brand-deep);
-        transform: translateY(-2px);
-    }
-
-    .download-btn {
-        width: 100%;
-        padding: 12px;
-        background: rgba(233, 143, 122, 0.1);
-        color: var(--brand);
-        border: 1px solid var(--brand);
-        border-radius: var(--radius-sm);
-        cursor: pointer;
-        font-weight: 600;
-        font-size: 0.95rem;
-        margin-top: 16px;
-        transition: all 0.2s;
-    }
-
-    .download-btn:hover {
-        background: var(--brand);
-        color: white;
-    }
-
-    .qrcode-link-wrap {
-        margin-top: 10px;
-        padding: 12px;
-        border: 1px solid var(--line);
-        border-radius: var(--radius-sm);
-        background: rgba(255, 255, 255, 0.7);
-    }
-
-    .qrcode-link-head {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 12px;
-        margin-bottom: 6px;
-    }
-
-    .qrcode-link-label {
-        font-size: 0.86rem;
-        color: var(--muted);
-    }
-
-    .qrcode-link-text {
-        word-break: break-all;
-        font-size: 0.9rem;
-        color: var(--ink);
-    }
-
-    .link-copy-btn {
-        padding: 6px 12px;
-        border: none;
-        border-radius: 999px;
-        background: rgba(233, 143, 122, 0.12);
-        color: var(--brand-deep);
-        font-size: 0.82rem;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.2s;
-        white-space: nowrap;
-    }
-
-    .link-copy-btn:hover {
-        background: rgba(233, 143, 122, 0.2);
-    }
-
-    .qrcode-warning {
-        margin-top: 10px;
-        padding: 10px 12px;
-        border-radius: var(--radius-sm);
-        background: rgba(255, 236, 214, 0.8);
-        border: 1px solid rgba(233, 143, 122, 0.4);
-        color: #8a4337;
-        font-size: 0.88rem;
-        line-height: 1.5;
-    }
-
-    .share-tips {
-        margin-top: 32px;
-        padding-top: 24px;
-        border-top: 1px solid var(--line);
-    }
-
-    .share-tips h3 {
-        margin: 0 0 14px;
-        font-size: 1.05rem;
-        color: var(--ink);
-    }
-
-    .tips-list {
-        margin: 0;
-        padding: 0;
-        list-style: none;
-    }
-
-    .tips-list li {
-        padding: 8px 0;
-        color: var(--muted);
-        font-size: 0.95rem;
-        line-height: 1.6;
-    }
-
-    .members-list {
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-    }
-
-    .member-item {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        padding: 14px;
-        background: rgba(255, 255, 255, 0.8);
-        border-radius: var(--radius-md);
-        border: 1px solid var(--line);
-    }
-
-    .member-icon {
-        font-size: 1.8rem;
-        width: 44px;
-        text-align: center;
-    }
-
-    .member-info {
-        flex: 1;
-    }
-
-    .member-name {
-        font-weight: 600;
-        color: var(--ink);
-        margin-bottom: 4px;
-    }
-
-    .member-role {
-        font-size: 0.9rem;
-        color: var(--muted);
-    }
-
-    .member-status {
-        display: flex;
-        gap: 8px;
-    }
-
-    .badge {
-        display: inline-block;
-        padding: 4px 12px;
-        border-radius: 999px;
-        font-size: 0.8rem;
-        font-weight: 600;
-    }
-
-    .badge-self {
-        background: var(--brand);
-        color: white;
-    }
-
-    .badge-active {
-        background: var(--success);
-        color: white;
-    }
-
-    .empty-state {
-        text-align: center;
-        padding: 20px;
-        color: var(--muted);
-    }
-
-    .action-buttons {
-        display: flex;
-        gap: 12px;
-        justify-content: center;
-    }
-
-    @media (max-width: 820px) {
-        .invite-container {
-            grid-template-columns: 1fr;
-            gap: 20px;
-        }
-
-        .content-card {
-            padding: 24px;
-        }
-
-        .card-header h1 {
-            font-size: 1.5rem;
-        }
-    }
-</style>
 {% endblock %}

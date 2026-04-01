@@ -10,7 +10,7 @@ from io import BytesIO
 from urllib.parse import urlsplit
 
 from dotenv import load_dotenv
-from flask import Flask, flash, g, redirect, render_template, request, send_from_directory, session, url_for
+from flask import Flask, flash, g, jsonify, redirect, render_template, request, send_from_directory, session, url_for
 from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import secure_filename
 
@@ -31,6 +31,21 @@ load_dotenv()
 ALLOWED_ROLES = {"admin", "father", "mother", "grandpa", "grandma", "grandpa_maternal", "grandma_maternal", "guardian"}
 ALLOWED_VACCINE_STATUSES = {"pending", "booked", "done"}
 ALLOWED_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".webp"}
+
+
+def is_ajax() -> bool:
+    return request.headers.get("X-Requested-With") == "XMLHttpRequest"
+
+
+def ajax_redirect(success: bool, message: str):
+    """Return JSON for AJAX requests, redirect otherwise."""
+    if is_ajax():
+        return jsonify({"ok": success, "message": message})
+    if success:
+        flash(message, "success")
+    else:
+        flash(message, "error")
+    return redirect(url_for("dashboard"))
 
 
 def create_app() -> Flask:
@@ -764,12 +779,7 @@ def handle_add_baby(user: dict):
     birthday = parse_date_from_form(birthday_raw)
 
     success, message = family_service.add_baby_validated(user["family_id"], name, birthday, gender, note)
-
-    if success:
-        flash(message, "success")
-    else:
-        flash(message, "error")
-    return redirect(url_for("dashboard"))
+    return ajax_redirect(success, message)
 
 
 def handle_add_event(user: dict):
@@ -784,8 +794,7 @@ def handle_add_event(user: dict):
     try:
         baby_id = int(baby_id_raw)
     except (TypeError, ValueError):
-        flash("请选择有效的宝宝。", "error")
-        return redirect(url_for("dashboard"))
+        return ajax_redirect(False, "请选择有效的宝宝。")
 
     amount = parse_optional_float(amount_raw) if amount_raw else None
     start_time = parse_datetime_from_form(start_time_raw)
@@ -802,12 +811,7 @@ def handle_add_event(user: dict):
         end_time=end_time,
         note=note,
     )
-
-    if success:
-        flash(message, "success")
-    else:
-        flash(message, "error")
-    return redirect(url_for("dashboard"))
+    return ajax_redirect(success, message)
 
 
 def handle_add_photo(user: dict):
@@ -819,17 +823,14 @@ def handle_add_photo(user: dict):
     try:
         baby_id = int(baby_id_raw)
     except (TypeError, ValueError):
-        flash("请选择有效的宝宝。", "error")
-        return redirect(url_for("dashboard"))
+        return ajax_redirect(False, "请选择有效的宝宝。")
 
     if not image_file or not image_file.filename:
-        flash("请选择要上传的照片文件。", "error")
-        return redirect(url_for("dashboard"))
+        return ajax_redirect(False, "请选择要上传的照片文件。")
 
     image_url = save_uploaded_image(image_file)
     if not image_url:
-        flash("仅支持上传 jpg、jpeg、png、gif、webp 格式的图片。", "error")
-        return redirect(url_for("dashboard"))
+        return ajax_redirect(False, "仅支持上传 jpg、jpeg、png、gif、webp 格式的图片。")
 
     success, message = family_service.add_photo_validated(
         family_id=user["family_id"],
@@ -839,12 +840,7 @@ def handle_add_photo(user: dict):
         caption=caption,
         taken_on=taken_on,
     )
-
-    if success:
-        flash(message, "success")
-    else:
-        flash(message, "error")
-    return redirect(url_for("dashboard"))
+    return ajax_redirect(success, message)
 
 
 def handle_add_measurement(user: dict):
@@ -858,22 +854,18 @@ def handle_add_measurement(user: dict):
     try:
         baby_id = int(baby_id_raw)
     except (TypeError, ValueError):
-        flash("请选择有效的宝宝。", "error")
-        return redirect(url_for("dashboard"))
+        return ajax_redirect(False, "请选择有效的宝宝。")
 
     weight_kg = parse_optional_float(weight_raw) if weight_raw else None
     height_cm = parse_optional_float(height_raw) if height_raw else None
     head_circumference_cm = parse_optional_float(head_raw) if head_raw else None
 
     if weight_raw and weight_kg is None:
-        flash("体重格式不正确。", "error")
-        return redirect(url_for("dashboard"))
+        return ajax_redirect(False, "体重格式不正确。")
     if height_raw and height_cm is None:
-        flash("身高格式不正确。", "error")
-        return redirect(url_for("dashboard"))
+        return ajax_redirect(False, "身高格式不正确。")
     if head_raw and head_circumference_cm is None:
-        flash("头围格式不正确。", "error")
-        return redirect(url_for("dashboard"))
+        return ajax_redirect(False, "头围格式不正确。")
 
     success, message = family_service.add_measurement_validated(
         family_id=user["family_id"],
@@ -885,12 +877,7 @@ def handle_add_measurement(user: dict):
         head_circumference_cm=head_circumference_cm,
         note=note,
     )
-
-    if success:
-        flash(message, "success")
-    else:
-        flash(message, "error")
-    return redirect(url_for("dashboard"))
+    return ajax_redirect(success, message)
 
 
 def handle_add_vaccine(user: dict):
@@ -901,14 +888,12 @@ def handle_add_vaccine(user: dict):
     note = request.form.get("note", "").strip()
 
     if status not in ALLOWED_VACCINE_STATUSES:
-        flash("疫苗状态无效。", "error")
-        return redirect(url_for("dashboard"))
+        return ajax_redirect(False, "疫苗状态无效。")
 
     try:
         baby_id = int(baby_id_raw)
     except (TypeError, ValueError):
-        flash("请选择有效的宝宝。", "error")
-        return redirect(url_for("dashboard"))
+        return ajax_redirect(False, "请选择有效的宝宝。")
 
     success, message = family_service.add_vaccine_validated(
         family_id=user["family_id"],
@@ -918,12 +903,7 @@ def handle_add_vaccine(user: dict):
         status=status,
         note=note,
     )
-
-    if success:
-        flash(message, "success")
-    else:
-        flash(message, "error")
-    return redirect(url_for("dashboard"))
+    return ajax_redirect(success, message)
 
 
 def compute_vaccine_display_status(status: str, due_date: date) -> str:
