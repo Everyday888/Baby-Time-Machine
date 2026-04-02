@@ -1,4 +1,4 @@
-import os
+﻿import os
 import random
 import smtplib
 import string
@@ -7,12 +7,18 @@ from datetime import date, datetime, timedelta
 from email.message import EmailMessage
 from functools import wraps
 from io import BytesIO
+from urllib.parse import quote as _url_quote
 from urllib.parse import urlsplit
 
 from dotenv import load_dotenv
 from flask import Flask, flash, g, jsonify, redirect, render_template, request, send_from_directory, session, url_for
-from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import secure_filename
+
+try:
+    import requests as _http_requests
+    HAS_REQUESTS = True
+except ImportError:
+    HAS_REQUESTS = False
 
 try:
     import qrcode
@@ -31,6 +37,19 @@ load_dotenv()
 ALLOWED_ROLES = {"admin", "father", "mother", "grandpa", "grandma", "grandpa_maternal", "grandma_maternal", "guardian"}
 ALLOWED_VACCINE_STATUSES = {"pending", "booked", "done"}
 ALLOWED_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".webp"}
+
+WECHAT_APPID = os.getenv("WECHAT_APPID", "").strip()
+WECHAT_SECRET = os.getenv("WECHAT_SECRET", "").strip()
+
+
+def is_wechat_browser() -> bool:
+    return "MicroMessenger" in request.headers.get("User-Agent", "")
+
+
+def get_client_ip() -> str:
+    """Return the real client IP, trusting X-Real-IP set by a trusted reverse proxy."""
+    real_ip = request.headers.get("X-Real-IP", "").strip()
+    return real_ip if real_ip else (request.remote_addr or "unknown")
 
 
 def is_ajax() -> bool:
@@ -54,6 +73,27 @@ def create_app() -> Flask:
     app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(minutes=15)
     app.config["UPLOAD_IMAGE_DIR"] = os.path.join(app.root_path, "images")
     app.config["PUBLIC_BASE_URL"] = os.getenv("PUBLIC_BASE_URL", "").strip().rstrip("/")
+
+    @app.before_request
+    def wechat_silent_oauth():
+        """Silently obtain WeChat OpenID for users inside WeChat browser."""
+        if not (WECHAT_APPID and WECHAT_SECRET and HAS_REQUESTS):
+            return
+        if not is_wechat_browser():
+            return
+        if session.get("wechat_openid"):
+            return
+        if session.get("wechat_oauth_attempted"):
+            return
+        skip_endpoints = {
+            "wechat_oauth_start", "wechat_oauth_callback",
+            "static", "node_modules", "manifest", "uploaded_image",
+        }
+        if not request.endpoint or request.endpoint in skip_endpoints:
+            return
+        session["wechat_oauth_attempted"] = True
+        session["wechat_pre_path"] = request.path
+        return redirect(url_for("wechat_oauth_start"))
 
     @app.before_request
     def load_user():
@@ -155,6 +195,64 @@ def create_app() -> Flask:
             return redirect(url_for("register"))
         return redirect(url_for("register", family_mode="join", invite_code=code))
 
+    # ------------------------------------------------------------------
+    # WeChat Official Account OAuth routes
+    # ------------------------------------------------------------------
+
+    @app.route("/wechat/oauth")
+    def wechat_oauth_start():
+        """Redirect user to WeChat silent-authorization page (snsapi_base)."""
+        if not (WECHAT_APPID and WECHAT_SECRET and HAS_REQUESTS):
+            return redirect(url_for("index"))
+        callback_uri = url_for("wechat_oauth_callback", _external=True)
+        oauth_url = (
+            "https://open.weixin.qq.com/connect/oauth2/authorize"
+            f"?appid={WECHAT_APPID}"
+            f"&redirect_uri={_url_quote(callback_uri, safe='')}"
+            "&response_type=code"
+            "&scope=snsapi_base"
+            "&state=wbtm"
+            "#wechat_redirect"
+        )
+        return redirect(oauth_url)
+
+    @app.route("/wechat/callback")
+    def wechat_oauth_callback():
+        """Exchange code for OpenID, optionally auto-login if already bound."""
+        code = request.args.get("code", "")
+        return_path = session.pop("wechat_pre_path", None) or "/"
+        if not get_safe_next_url(return_path):
+            return_path = "/"
+
+        if code and WECHAT_APPID and WECHAT_SECRET and HAS_REQUESTS:
+            try:
+                resp = _http_requests.get(
+                    "https://api.weixin.qq.com/sns/oauth2/access_token",
+                    params={
+                        "appid": WECHAT_APPID,
+                        "secret": WECHAT_SECRET,
+                        "code": code,
+                        "grant_type": "authorization_code",
+                    },
+                    timeout=8,
+                )
+                data = resp.json()
+                openid = data.get("openid", "").strip()
+                if openid:
+                    session["wechat_openid"] = openid
+                    # Auto-login if this OpenID is already bound to a user
+                    if not session.get("user_id"):
+                        wechat_user = auth_service.get_user_by_wechat_openid(openid)
+                        if wechat_user and wechat_user["is_active"]:
+                            session["user_id"] = wechat_user["id"]
+                            session.permanent = True
+                            session["last_seen_at"] = datetime.utcnow().isoformat()
+            except Exception:
+                pass  # Non-critical; user falls back to normal login
+
+        return redirect(return_path)
+
+
     @app.route("/register", methods=["GET", "POST"])
     def register():
         if request.method == "POST":
@@ -163,7 +261,7 @@ def create_app() -> Flask:
             email = request.form.get("email", "").strip().lower() or None
             password = request.form.get("password", "")
             confirm_password = request.form.get("confirm_password", "")
-            role = request.form.get("role", "parent")
+            role = "guardian"  # role is set on the profile page after registration
             family_mode = request.form.get("family_mode", "create")
             family_name = request.form.get("family_name", "").strip()
             invite_code_input = request.form.get("invite_code", "").strip().upper()
@@ -176,8 +274,15 @@ def create_app() -> Flask:
             if not full_name or not phone or not password:
                 return _render_register_error("请完整填写注册信息。")
 
-            if len(phone) < 6:
-                return _render_register_error("手机号格式不正确，请检查后重试。")
+            # ── Phone validation (server-side) ──────────────────────────
+            phone_ok, phone_err = auth_service.validate_phone(phone)
+            if not phone_ok:
+                return _render_register_error(phone_err)
+
+            # ── Password strength check ──────────────────────────────────
+            pwd_ok, pwd_err = auth_service.validate_password_strength(password)
+            if not pwd_ok:
+                return _render_register_error(pwd_err)
 
             if accepted_terms != "on":
                 return _render_register_error("请先阅读并同意家庭协作说明。")
@@ -185,41 +290,61 @@ def create_app() -> Flask:
             if password != confirm_password:
                 return _render_register_error("两次输入的密码不一致。")
 
-            if len(password) < 6:
-                return _render_register_error("密码至少需要 6 位。")
-
             if role not in ALLOWED_ROLES:
-                return _render_register_error("角色信息无效，请重新选择。")
+                role = "guardian"  # safe fallback
 
+            # ── IP rate limiting: max 2 registrations per IP per hour ────
+            client_ip = get_client_ip()
+            recent_count = auth_service.count_recent_registrations_by_ip(
+                client_ip, datetime.now() - timedelta(hours=1)
+            )
+            if recent_count >= 2:
+                return _render_register_error(
+                    "该网络注册过于频繁，请 1 小时后再试，或联系管理员。"
+                )
+
+            # ── Duplicate phone / email check ────────────────────────────
             existing_user = auth_service.user_phone_exists(phone)
             if existing_user:
-                return _render_register_error("该手机号已注册，请直接登录或使用忘记密码。")
+                return _render_register_error("该手机号已注册，请直接登录或使用找回密码。")
 
             if email:
                 existing_email_user = auth_service.user_email_exists(email)
                 if existing_email_user:
                     return _render_register_error("该邮箱已被占用，请更换或留空。")
 
+            # ── WeChat OpenID binding check (in WeChat H5) ───────────────
+            wechat_openid = session.get("wechat_openid", "") or None
+            if wechat_openid:
+                already_bound = auth_service.get_user_by_wechat_openid(wechat_openid)
+                if already_bound:
+                    return _render_register_error(
+                        "该微信账号已绑定其他账号，请直接登录；或更换微信账号注册。"
+                    )
+
+            now = datetime.now()
             try:
                 user_id = auth_service.create_user_with_family(
                     full_name=full_name,
                     phone=phone,
                     email=email,
-                    password_hash=generate_password_hash(password),
+                    password_hash=auth_service.hash_password(password),
                     role=role,
                     family_mode=family_mode,
                     family_name=family_name,
                     invite_code_input=invite_code_input,
-                    created_at=datetime.now(),
-                    update_by=full_name
+                    created_at=now,
+                    update_by=full_name,
+                    wechat_openid=wechat_openid,
                 )
             except ValueError as err:
                 flash(str(err), "error")
                 return render_template("auth/register.html", form=request.form)
 
+            auth_service.log_ip_registration(client_ip, now)
             session["user_id"] = user_id
             session.permanent = True
-            flash("注册成功，欢迎来到宝贝时光机。", "success")
+            flash("注册成功，欢迎来到童忆时光册。", "success")
             return redirect(url_for("dashboard"))
 
         prefill_form = {
@@ -240,52 +365,91 @@ def create_app() -> Flask:
 
             user = auth_service.get_login_user_by_phone_or_email(account)
 
-            if not user or not user["is_active"] or not check_password_hash(user["password_hash"], password):
-                flash("手机号/邮箱或密码错误。", "error")
+            if not user or not user["is_active"] or not auth_service.check_password(password, user["password_hash"]):
+                flash("手机号或密码错误。", "error")
                 return render_template("auth/login.html", form=request.form)
-            print(user)
+
             auth_service.update_user_last_login(user["id"], user["full_name"])
             session["user_id"] = user["id"]
             session.permanent = remember_me
             session["last_seen_at"] = datetime.utcnow().isoformat()
+
+            # ── Bind WeChat OpenID if present in session ─────────────────
+            wechat_openid = session.get("wechat_openid", "")
+            if wechat_openid:
+                already_bound = auth_service.get_user_by_wechat_openid(wechat_openid)
+                if already_bound and already_bound["id"] != user["id"]:
+                    flash("该微信账号已绑定其他账号，本次登录不自动绑定。", "warning")
+                elif not already_bound:
+                    auth_service.bind_wechat_openid(user["id"], wechat_openid)
+
             return redirect(next_url or url_for("dashboard"))
 
         return render_template("auth/login.html", form=request.form, next_url=next_url)
 
     @app.route("/forgot-password", methods=["GET", "POST"])
     def forgot_password():
+        pending_phone = session.get("fp_pending_phone")
+
         if request.method == "POST":
             form_action = request.form.get("form_action", "request_code")
-            account = request.form.get("account", "").strip().lower()
-
-            user = auth_service.get_active_user_by_phone_or_email(account)
-            if not user:
-                flash("未找到该账号，请确认手机号或邮箱。", "error")
-                return redirect(url_for("forgot_password"))
 
             if form_action == "request_code":
-                code = generate_numeric_code()
+                phone = request.form.get("phone", "").strip()
 
+                phone_ok, phone_err = auth_service.validate_phone(phone)
+                if not phone_ok:
+                    flash(phone_err, "error")
+                    return redirect(url_for("forgot_password"))
+
+                user = auth_service.get_active_user_by_phone(phone)
+                if not user:
+                    flash("未找到该手机号对应的账号，请确认后重试。", "error")
+                    return redirect(url_for("forgot_password"))
+
+                if not user.get("email"):
+                    flash(
+                        "该账号未绑定邮箱，无法自助找回密码。请联系家庭管理员或系统管理员手工重置。",
+                        "warning"
+                    )
+                    return redirect(url_for("forgot_password"))
+
+                code = generate_numeric_code()
                 auth_service.replace_password_reset_code(
                     user_id=user["id"],
                     code=code,
                     expires_at=datetime.now() + timedelta(minutes=10),
                     created_at=datetime.now(),
                 )
-                delivery_message = send_password_reset_code(app, user, code)
-                flash(delivery_message, "success")
+                try:
+                    delivery_message = send_password_reset_code(app, user, code)
+                    flash(delivery_message, "success")
+                except Exception:
+                    flash("邮件发送失败，请检查服务器邮件配置或联系管理员。", "error")
+                    return redirect(url_for("forgot_password"))
+
+                session["fp_pending_phone"] = phone
                 return redirect(url_for("forgot_password"))
 
+            # form_action == "reset_password"
+            phone = pending_phone or request.form.get("phone", "").strip()
             code = request.form.get("code", "").strip()
             new_password = request.form.get("new_password", "")
             confirm_password = request.form.get("confirm_password", "")
 
-            if len(new_password) < 6:
-                flash("新密码至少需要 6 位。", "error")
+            pwd_ok, pwd_err = auth_service.validate_password_strength(new_password)
+            if not pwd_ok:
+                flash(pwd_err, "error")
                 return redirect(url_for("forgot_password"))
 
             if new_password != confirm_password:
                 flash("两次输入的新密码不一致。", "error")
+                return redirect(url_for("forgot_password"))
+
+            user = auth_service.get_active_user_by_phone(phone) if phone else None
+            if not user:
+                flash("账号信息异常，请重新操作。", "error")
+                session.pop("fp_pending_phone", None)
                 return redirect(url_for("forgot_password"))
 
             reset_code = auth_service.get_latest_unused_reset_code(user["id"], code)
@@ -295,15 +459,16 @@ def create_app() -> Flask:
 
             auth_service.reset_user_password(
                 user_id=user["id"],
-                password_hash=generate_password_hash(new_password),
+                password_hash=auth_service.hash_password(new_password),
                 reset_code_id=reset_code["id"],
                 used_at=datetime.now(),
                 update_by=user["full_name"]
             )
+            session.pop("fp_pending_phone", None)
             flash("密码重置成功，请使用新密码登录。", "success")
             return redirect(url_for("login"))
 
-        return render_template("auth/forgot_password.html")
+        return render_template("auth/forgot_password.html", pending_phone=pending_phone)
 
     @app.route("/logout")
     @login_required
@@ -434,7 +599,8 @@ def create_app() -> Flask:
         if form_action == "update_profile":
             full_name = request.form.get("full_name", "").strip()
             email = request.form.get("email", "").strip()
-            ok, msg = auth_service.update_user_profile(g.user["id"], full_name, email or None)
+            role = request.form.get("role", "").strip()
+            ok, msg = auth_service.update_user_profile(g.user["id"], full_name, email or None, role or None)
             flash(msg, "success" if ok else "error")
             return redirect(url_for("profile"))
 
@@ -444,19 +610,20 @@ def create_app() -> Flask:
             confirm_password = request.form.get("confirm_password", "")
 
             user_with_hash = auth_service.get_login_user_by_phone_or_email(g.user["phone"])
-            if not user_with_hash or not check_password_hash(user_with_hash["password_hash"], current_password):
+            if not user_with_hash or not auth_service.check_password(current_password, user_with_hash["password_hash"]):
                 flash("当前密码不正确。", "error")
                 return redirect(url_for("profile"))
 
-            if len(new_password) < 6:
-                flash("新密码至少需要 6 位。", "error")
+            pwd_ok, pwd_err = auth_service.validate_password_strength(new_password)
+            if not pwd_ok:
+                flash(pwd_err, "error")
                 return redirect(url_for("profile"))
 
             if new_password != confirm_password:
                 flash("两次输入的新密码不一致。", "error")
                 return redirect(url_for("profile"))
 
-            auth_service.update_user_password(g.user["id"], generate_password_hash(new_password))
+            auth_service.update_user_password(g.user["id"], auth_service.hash_password(new_password))
             flash("密码已更新，请用新密码重新登录。", "success")
             session.clear()
             return redirect(url_for("login"))
@@ -957,7 +1124,7 @@ def send_password_reset_code(app: Flask, user: dict, code: str) -> str:
         return f"邮箱地址或邮件服务未配置"
 
     message = EmailMessage()
-    message["Subject"] = "宝贝时光机密码重置验证码"
+    message["Subject"] = "童忆时光册密码重置验证码"
     message["From"] = app.config.get("SMTP_FROM") or app.config.get("SMTP_USERNAME")
     message["To"] = user["email"]
     message.set_content(

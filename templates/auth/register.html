@@ -1,6 +1,6 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 
-{% block title %}轻松注册 | 宝贝时光机{% endblock %}
+{% block title %}轻松注册 | 童忆时光册{% endblock %}
 
 {% block content %}
 <section class="auth-layout">
@@ -11,35 +11,28 @@
     <form method="post" class="form-stack" id="regForm">
       <input type="hidden" name="family_mode" value="{{ form.get('family_mode', 'create') }}" data-family-mode-input>
 
-      <!-- 称呼 + 角色 -->
-      <div class="grid-two">
-        <div class="field">
-          <wa-input label="我的称呼" id="full_name" name="full_name"
-            value="{{ form.get('full_name', '') }}" placeholder="比如：宝宝妈妈" required clearable></wa-input>
-        </div>
-        <div class="field">
-          <wa-select label="身份角色" id="role" name="role" value="{{ form.get('role', 'mother') }}" required>
-            <wa-option value="mother">👩 妈妈</wa-option>
-            <wa-option value="father">👨 爸爸</wa-option>
-            <wa-option value="grandma">👵 奶奶</wa-option>
-            <wa-option value="grandpa">👴 爷爷</wa-option>
-            <wa-option value="grandma_maternal">👵 外婆</wa-option>
-            <wa-option value="grandpa_maternal">👴 外公</wa-option>
-            <wa-option value="guardian">🧡 看护人</wa-option>
-          </wa-select>
-        </div>
+      <!-- 称呼 -->
+      <div class="field">
+        <wa-input label="我的称呼" id="full_name" name="full_name"
+          value="{{ form.get('full_name', '') }}" placeholder="比如：宝宝妈妈" required clearable></wa-input>
       </div>
 
-      <!-- 手机号 + 密码 -->
+      <!-- 手机号 + 邮箱 -->
       <div class="grid-two">
         <div class="field">
           <wa-input label="手机号" id="phone" name="phone" type="tel"
             value="{{ form.get('phone', '') }}" placeholder="用于登录" required clearable></wa-input>
         </div>
         <div class="field">
-          <wa-input label="登录密码" id="password" name="password"
-            type="password" password-toggle placeholder="至少 6 位" required></wa-input>
+          <wa-input label="邮箱（可选）" id="email" name="email" type="email"
+            value="{{ form.get('email', '') }}" placeholder="用于找回密码" clearable></wa-input>
         </div>
+      </div>
+
+      <!-- 密码 -->
+      <div class="field">
+        <wa-input label="登录密码" id="password" name="password"
+          type="password" password-toggle placeholder="至少 6 位" required></wa-input>
       </div>
       <div class="form-hint" id="pwdTip">密码至少 6 位数字或字母</div>
 
@@ -85,7 +78,7 @@
   </div>
 
   <div class="info-panel fade-in">
-    <span class="eyebrow">加入宝贝时光机 👶</span>
+    <span class="eyebrow">加入童忆时光册 👶</span>
     <h2>全家一起，温柔记录长大</h2>
     <div class="meta-list" style="margin-top:1rem;">
       <div class="mini-chip">🏠 建小家 / 进已有家庭</div>
@@ -96,19 +89,40 @@
 </section>
 
 <script>
+const PHONE_RE = /^1[3-9]\d{9}$/;
+const WEAK_PASSWORDS = new Set([
+  '000000','111111','222222','333333','444444','555555','666666',
+  '777777','888888','999999','123456','654321','123123','321321',
+  '112233','998877','1234567','12345678','password','qwerty','abc123',
+]);
+
+const phoneEl = document.getElementById('phone');
+const phoneHint = document.createElement('div');
+phoneHint.className = 'form-hint';
+phoneEl?.parentNode?.appendChild(phoneHint);
+function checkPhone(val) {
+  if (!val) { phoneHint.textContent = ''; return; }
+  const ok = PHONE_RE.test(val) && new Set(val.slice(3)).size > 1;
+  phoneHint.textContent = ok ? '✓ 格式正确' : '请输入11位手机号（13~19开头，不能全为相同字符）';
+  phoneHint.style.color = ok ? 'var(--brand-deep)' : '#d95e5e';
+}
+phoneEl?.addEventListener('input', e => checkPhone(e.target.value?.trim() || ''));
+
 const pwd = document.getElementById('password');
 const tip = document.getElementById('pwdTip');
-pwd.addEventListener('input', () => {
-  if (pwd.value.length > 0 && pwd.value.length < 6) {
-    tip.textContent = '密码至少 6 位哦';
-    tip.style.color = '#c0392b';
+function checkPwd(val) {
+  if (!val) { tip.textContent = '密码至少 6 位数字或字母'; tip.style.color = ''; return; }
+  if (val.length < 6) {
+    tip.textContent = '密码还差 ' + (6 - val.length) + ' 位'; tip.style.color = '#d95e5e';
+  } else if (WEAK_PASSWORDS.has(val) || new Set(val).size === 1) {
+    tip.textContent = '密码过于简单，请换一个更安全的'; tip.style.color = '#d95e5e';
   } else {
-    tip.textContent = '密码至少 6 位数字或字母';
-    tip.style.color = '';
+    tip.textContent = '✓ 密码强度OK'; tip.style.color = 'var(--brand-deep)';
   }
-});
+}
+pwd?.addEventListener('input', e => checkPwd(e.target.value || ''));
 
-// Highlight active mode button
+// Family mode toggle
 document.querySelectorAll('[data-family-mode]').forEach(btn => {
   btn.addEventListener('click', () => {
     const mode = btn.dataset.familyMode;
@@ -117,6 +131,10 @@ document.querySelectorAll('[data-family-mode]').forEach(btn => {
       b.setAttribute('variant', active ? 'brand' : 'neutral');
       b.setAttribute('appearance', active ? 'filled' : 'outlined');
     });
+    const modeInput = document.querySelector('[data-family-mode-input]');
+    if (modeInput) modeInput.value = mode;
+    document.querySelector('[data-family-create]')?.classList.toggle('hidden', mode !== 'create');
+    document.querySelector('[data-family-join]')?.classList.toggle('hidden', mode !== 'join');
   });
 });
 </script>

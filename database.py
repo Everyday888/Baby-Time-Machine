@@ -228,6 +228,15 @@ def init_database_schema():
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
         """,
         """
+        CREATE TABLE IF NOT EXISTS ip_reg_log (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            ip VARCHAR(45) NOT NULL,
+            registered_at DATETIME NOT NULL,
+            INDEX idx_ip_reg_ip (ip),
+            INDEX idx_ip_reg_at (registered_at)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        """,
+        """
         CREATE TABLE IF NOT EXISTS password_reset_codes (
             id INT AUTO_INCREMENT PRIMARY KEY,
             user_id INT NOT NULL,
@@ -260,6 +269,7 @@ def init_database_schema():
         "ALTER TABLE password_reset_codes ADD COLUMN IF NOT EXISTS updated_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP",
         "ALTER TABLE password_reset_codes ADD COLUMN IF NOT EXISTS created_by VARCHAR(50) DEFAULT NULL",
         "ALTER TABLE password_reset_codes ADD COLUMN IF NOT EXISTS created_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP",
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS wechat_openid VARCHAR(64) NULL",
     ]
 
     connection = get_connection(with_database=True)
@@ -271,7 +281,7 @@ def init_database_schema():
                 try:
                     cursor.execute(statement)
                 except Exception:
-                    # Keep migrations idempotent across different MySQL versions/index states.
+                    # Keep migrations idempotent: ignore duplicate column / index errors.
                     pass
         connection.commit()
     finally:

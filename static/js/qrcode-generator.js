@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Baby Time Machine - 二维码分享工具
  * 使用 qrcode.js 库，支持动态生成和下载二维码
  */
@@ -125,7 +125,7 @@ class QRCodeGenerator {
    * @param {string} familyName - 家庭名称
    */
   getShareText(code, familyName = '我的家庭') {
-    return `我在使用「宝贝时光机」记录宝宝的成长！邀请你加入 ${familyName}，一起见证美好时刻。\n邀请码：${code}`;
+    return `我在使用「童忆时光册」记录宝宝的成长！邀请你加入 ${familyName}，一起见证美好时刻。\n邀请码：${code}`;
   }
 
   /**
@@ -187,7 +187,7 @@ class QRCodeGenerator {
   getWeChatShare(code, familyName = '我的家庭') {
     const text = this.getShareText(code, familyName);
     return {
-      title: '加入宝贝时光机',
+      title: '加入童忆时光册',
       desc: `邀请码：${code}`,
       link: `https://baby-time-machine.com/join?code=${code}`,
       imgUrl: 'https://baby-time-machine.com/static/icon.png',
