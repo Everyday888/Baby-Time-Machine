@@ -63,15 +63,18 @@
       </div>
 
       <div class="field compact-field">
-        <wa-checkbox id="accepted_terms" name="accepted_terms"
-          {% if form.get('accepted_terms') == 'on' %}checked{% endif %}>
-          同意家人共享宝贝记录 &amp; 照片
+        <wa-checkbox id="accepted_terms" name="accepted_terms">
+          我已阅读并同意 <a href="{{ url_for('terms') }}" target="_blank" style="color:var(--brand-deep);">《用户服务协议》</a>
+        </wa-checkbox>
+      </div>
+      <div class="field compact-field">
+        <wa-checkbox id="accepted_privacy" name="accepted_privacy">
+          我已阅读并同意 <a href="{{ url_for('privacy') }}" target="_blank" style="color:var(--brand-deep);">《隐私政策》</a>
         </wa-checkbox>
       </div>
 
       <div class="stack-actions">
-        <wa-button type="submit" variant="brand" id="register-submit"
-          {% if form.get('accepted_terms') != 'on' %}disabled{% endif %}>完成入驻</wa-button>
+        <wa-button type="submit" variant="brand" id="register-submit" disabled>完成入驻</wa-button>
         <a href="{{ url_for('login') }}"><wa-button type="button" appearance="outlined" variant="neutral">已有账号</wa-button></a>
       </div>
     </form>
@@ -122,7 +125,23 @@ function checkPwd(val) {
 }
 pwd?.addEventListener('input', e => checkPwd(e.target.value || ''));
 
-// Family mode toggle
+// Both checkboxes must be checked to enable submit
+const submitBtn = document.getElementById('register-submit');
+function updateSubmitState() {
+  const t = document.getElementById('accepted_terms');
+  const p = document.getElementById('accepted_privacy');
+  const bothChecked = t?.checked && p?.checked;
+  if (bothChecked) {
+    submitBtn?.removeAttribute('disabled');
+  } else {
+    submitBtn?.setAttribute('disabled', '');
+  }
+}
+document.getElementById('accepted_terms')?.addEventListener('wa-change', updateSubmitState);
+document.getElementById('accepted_privacy')?.addEventListener('wa-change', updateSubmitState);
+// Also listen native change events as fallback
+document.getElementById('accepted_terms')?.addEventListener('change', updateSubmitState);
+document.getElementById('accepted_privacy')?.addEventListener('change', updateSubmitState);
 document.querySelectorAll('[data-family-mode]').forEach(btn => {
   btn.addEventListener('click', () => {
     const mode = btn.dataset.familyMode;

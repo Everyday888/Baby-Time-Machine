@@ -1085,6 +1085,46 @@ th {
   margin: 1.6rem 0;
 }
 
+/* ── 协议/隐私政策页 ─────────────────────────────────── */
+.legal-body {
+  font-size: 0.93rem;
+  line-height: 1.8;
+  color: var(--text);
+}
+.legal-body h3 {
+  font-size: 1rem;
+  font-weight: 700;
+  margin: 1.4rem 0 0.4rem;
+  color: var(--brand-deep);
+}
+.legal-body p, .legal-body ul, .legal-body table {
+  margin-bottom: 0.8rem;
+}
+.legal-body ul {
+  padding-left: 1.4rem;
+}
+.legal-body ul li {
+  margin-bottom: 0.3rem;
+}
+.legal-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+.legal-table th, .legal-table td {
+  border: 1px solid var(--line);
+  padding: 6px 10px;
+  text-align: left;
+  vertical-align: top;
+}
+.legal-table th {
+  background: var(--panel);
+  font-weight: 600;
+}
+@media (max-width: 600px) {
+  .legal-table { display: block; overflow-x: auto; }
+}
+
 /* ── 邀请页专属样式 ─────────────────────────────────── */
 
 .invite-code-card {

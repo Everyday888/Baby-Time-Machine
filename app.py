@@ -187,6 +187,14 @@ def create_app() -> Flask:
     def uploaded_image(filename: str):
         return send_from_directory(app.config["UPLOAD_IMAGE_DIR"], filename)
 
+    @app.route("/terms")
+    def terms():
+        return render_template("terms.html")
+
+    @app.route("/privacy")
+    def privacy():
+        return render_template("privacy.html")
+
     @app.route("/join")
     def join_by_invite_code():
         code = request.args.get("code", "").strip().upper()
@@ -266,6 +274,7 @@ def create_app() -> Flask:
             family_name = request.form.get("family_name", "").strip()
             invite_code_input = request.form.get("invite_code", "").strip().upper()
             accepted_terms = request.form.get("accepted_terms")
+            accepted_privacy = request.form.get("accepted_privacy")
 
             def _render_register_error(message):
                 flash(message, "error")
@@ -285,7 +294,9 @@ def create_app() -> Flask:
                 return _render_register_error(pwd_err)
 
             if accepted_terms != "on":
-                return _render_register_error("请先阅读并同意家庭协作说明。")
+                return _render_register_error("请阅读并同意《用户服务协议》。")
+            if accepted_privacy != "on":
+                return _render_register_error("请阅读并同意《隐私政策》。")
 
             if password != confirm_password:
                 return _render_register_error("两次输入的密码不一致。")
